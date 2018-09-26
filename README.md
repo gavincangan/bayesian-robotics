@@ -5,5 +5,7 @@
 - Barnabas Gavin Cangan
 - Lisheng Yang
 
-### 09/26/2018
+## Timeline
+
+09/26/2018
 - Team formed
