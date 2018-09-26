@@ -5,5 +5,5 @@
 - Barnabas Gavin Cangan
 - Lisheng Yang
 
-## 09/26/2018
+### 09/26/2018
 - Team formed
