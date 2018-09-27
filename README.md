@@ -9,3 +9,6 @@
 
 09/26/2018
 - Team formed
+
+09/29/2018
+ - Project kickstart meeting
