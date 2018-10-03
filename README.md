@@ -16,11 +16,11 @@
 
 2018/10/03
 - Meeting planned
+- Get data from webcam & LIDAR - Done
+- LIDAR & camera mounts designed. Printing in progress
+- Gavin learned how to use FreeCAD :)
 
 ## TODO
-* Get data from LIDAR
-* Get data from webcam
-* 12V supply for LIDAR
 * Mount LIDAR and webcam (3d design + print)
 * Static IP for wifi
 * Run hector
