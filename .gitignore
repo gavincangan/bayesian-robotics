@@ -1,0 +1,15 @@
+/.catkin_tools/profiles
+
+*.bak
+*.swp
+
+*.project
+*.pydevproject
+
+/br_f18_project_ws/build
+/br_f18_project_ws/devel
+/br_f18_project_ws/logs
+
+/br_f18_project_ws/src/hokuyo_node
+/br_f18_project_ws/src/gscam
+/br_f18_project_ws/src/teleop_keyobard_twist
