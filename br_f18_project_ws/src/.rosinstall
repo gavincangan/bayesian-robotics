@@ -4,10 +4,18 @@
     uri: https://github.com/ros-teleop/teleop_twist_keyboard.git
     version: master
 - git:
+    local-name: usb_cam
+    uri: https://github.com/ros-drivers/usb_cam.git
+    version: master
+- git:
     local-name: gscam
     uri: https://github.com/ros-drivers/gscam.git
     version: master
 - git:
     local-name: hokuyo_node
     uri: https://github.com/ros-drivers/hokuyo_node.git
+    version: indigo-devel
+- git:
+    local-name: hector_slam
+    uri: https://github.com/tu-darmstadt-ros-pkg/hector_slam.git
     version: master

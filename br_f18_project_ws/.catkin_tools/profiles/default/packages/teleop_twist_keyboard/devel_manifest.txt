@@ -1,4 +1,4 @@
 teleop_keyobard_twist
-/home/user/br_f18_project_ws/devel/.private/teleop_twist_keyboard/lib/pkgconfig/teleop_twist_keyboard.pc /home/user/br_f18_project_ws/devel/lib/pkgconfig/teleop_twist_keyboard.pc
-/home/user/br_f18_project_ws/devel/.private/teleop_twist_keyboard/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig-version.cmake /home/user/br_f18_project_ws/devel/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig-version.cmake
-/home/user/br_f18_project_ws/devel/.private/teleop_twist_keyboard/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig.cmake /home/user/br_f18_project_ws/devel/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig.cmake
+/home/user/bayesian-robotics/br_f18_project_ws/devel/.private/teleop_twist_keyboard/lib/pkgconfig/teleop_twist_keyboard.pc /home/user/bayesian-robotics/br_f18_project_ws/devel/lib/pkgconfig/teleop_twist_keyboard.pc
+/home/user/bayesian-robotics/br_f18_project_ws/devel/.private/teleop_twist_keyboard/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig-version.cmake /home/user/bayesian-robotics/br_f18_project_ws/devel/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig-version.cmake
+/home/user/bayesian-robotics/br_f18_project_ws/devel/.private/teleop_twist_keyboard/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig.cmake /home/user/bayesian-robotics/br_f18_project_ws/devel/share/teleop_twist_keyboard/cmake/teleop_twist_keyboardConfig.cmake

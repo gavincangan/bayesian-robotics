@@ -6,8 +6,8 @@
   <!-- The GStreamer framerate needs to be an integral fraction -->
   <arg name="FPS" default="30"/>
   <arg name="PUBLISH_FRAME" default="false"/>
-  <arg name="STREAM_CODEC" default="video/x-raw-rgb"/>
-  <!-- <arg name="STREAM_CODEC" default="video/x-raw-rgb"/> -->
+  <arg name="STREAM_CODEC" default="video/x-raw,format=YVYU"/>
+  <!--<arg name="STREAM_CODEC" default="video/mpeg"/>-->
 
   <node name="gscam_driver_v4l" pkg="gscam" type="gscam" output="screen">
     <param name="camera_name" value="default"/>

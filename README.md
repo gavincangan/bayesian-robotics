@@ -80,17 +80,15 @@ roslaunch mbz_c3_jackal gscam.launch
 rosrun hokuyo_node hokuyo_node
 ```
 
+### Run the ball detection
+```
+rosrun mbz_c3_jackal ball_detection.py 
+```
 
 ### Getting the Jackal to work with keyboard teleop
-- Used this package: https://wiki.ros.org/teleop_twist_keyboard
-```
-### On Ubuntu, ROS Kinetic
-sudo apt-get install ros-kinetic-teleop-twist-keyboard
-```
-- Once we had that set up, we could fire up the node and control Jackal using the keyboard
+After installing the `teleop_twist_keyboard` package, fire up the node and control Jackal using the keyboard
 
 ```
-source <path-to-catkin/devel/setup.bash>
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ```
 
@@ -117,16 +115,21 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 - Gavin learned how to use FreeCAD :)
 
 ### 2018/10/10
-
+* Run hector
+* Mount LIDAR and webcam
 
 ### 2018/10/15
 - Implimented ball detection
 - Restructured repository
 
-## 4. TODO
-* Mount LIDAR and webcam (3d design + print)
+## TODO
 * Static IP for wifi
-* Run hector
+* Build map in realtime (offboard mapping/play with settings in hector?)
+* Move using waypoint
+* Image processing for flame detection
+* A way of getting flame's position relative to UGV
+* Stream compressed webcam feed
+* Document upstart and add webcam to startup scripts
 
 ## 5. Contributors
 Team 3

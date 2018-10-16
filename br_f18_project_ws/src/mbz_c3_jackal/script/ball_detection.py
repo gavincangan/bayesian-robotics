@@ -56,8 +56,12 @@ class image_converter:
             z_est = pixels_at_1m/radius
             
             #self.drawText(img_final, "Radius: {:3.1f} px".format(radius), center[0], center[1])
-            self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius))
+            self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
             
+            ## Get estimated bearing, knowing the FOV is 90 degrees
+            bearing = (float(center[0])/(img_final.shape[1]/2)-1)*45.0
+            self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
+           
         
         cv2.imshow("Image window", img_final)
         cv2.waitKey(1)
