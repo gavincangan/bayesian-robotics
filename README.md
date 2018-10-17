@@ -16,7 +16,7 @@ sudo apt-get update
 sudo apt-get install python-rosinstall python-rosinstall-generator python-wstool build-essential
 sudo apt-get install protobuf-compiler python-pip python-toml python-jinja2 python-catkin-tools
 sudo pip install --upgrade pip
-sudo pip install -U catkin_tool
+sudo pip install -U catkin_tools
 
 sudo apt-get install gstreamer1.0-tools libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev
 ```
