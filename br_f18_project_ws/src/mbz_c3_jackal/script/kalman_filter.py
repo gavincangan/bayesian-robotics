@@ -1,4 +1,5 @@
 import numpy as np
+# import pdb
 
 class Gaussian:
     def __init__(self, _mu, _var):
@@ -61,12 +62,23 @@ class BallTracker(KalmanFilter):
             [1, 0, 0, 0, 0, 0],   \
             [0, 1, 0, 0, 0, 0],   \
             [0, 0, 1, 0, 0, 0],   \
+            [0, 0, 0, 1, 0, 0],   \
+            [0, 0, 0, 0, 1, 0],   \
+            [0, 0, 0, 0, 0, 1],   \
         ])
 
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-5, 1e-5, 1e-5, 1e-7, 1e-7, 1e-7] )
-        self.v = Gaussian.diagonal( [0, 0, 0], [1e-4, 1e-4, 1e-3] )
+        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-3, 1e-3, 1e-5, 1e-4, 1e-4, 1e-6] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 1e-5, 1e-4, 1e-4, 1e-5] )
 
         self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-4, 1e-4, 1e-3, 1e-5, 1e-5, 1e-4] )
+
+        self.yold = [_X, _Y, _R]
+
+    def correct(self, y):
+        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+        # pdb.set_trace()
+        KalmanFilter.correct(self, ty)
+        self.yold = y

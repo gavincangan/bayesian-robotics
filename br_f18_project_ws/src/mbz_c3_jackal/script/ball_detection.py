@@ -41,31 +41,28 @@ class image_converter:
         
         ## Draw circles on final image
         img_final = img.copy()
+
+        if self.tracker:
+            self.tracker.predict( np.array([0]) )
+
         for c in circles:
             center = c[0]
             radius = c[1]
 
             cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
 
-            if(not self.tracker):
-                self.tracker = BallTracker(center[0], center[1], radius)
-
-            else:
-                self.tracker.predict( np.array([0]) )
-                self.tracker.correct( np.array([ center[0], center[1], radius ]) )
-
-                x_mu, x_var = self.tracker.get_state()
-
-                cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2]*7e4), (255, 0, 0), -1)
-                cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (0, 0, 0), int((x_var[0][0]**2 + x_var[1][1]**2)*9e8) )
-
             cv2.circle(img_final, center, 5, (255, 0, 255), -1)
             
+
+            if(not self.tracker):
+                self.tracker = BallTracker(center[0], center[1], radius)
+            else:
+                self.tracker.correct( np.array([ center[0], center[1], radius ]) )
+
             ## Display some extra information about the object on-screen
-            
             ## Get the estimated distance
             ## This is the number of pixels we see at 1m for a ball of radius 10cm
-            pixels_at_1m = 142.0 ## Radius = 10cm
+            # pixels_at_1m = 142.0 ## Radius = 10cm
             pixels_at_1m = 163.3 ## Radius = 11.5cm
             
             z_est = pixels_at_1m/radius
@@ -77,11 +74,21 @@ class image_converter:
             bearing = (float(center[0])/(img_final.shape[1]/2)-1)*45.0
             self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
-            if(self.tracker):
-                self.drawText(img_final, "X: {}, {}".format(x_mu[0], x_var[0][0]), center[0]+30, center[1]-int(radius)+150)
-                self.drawText(img_final, "Y: {}, {}".format(x_mu[1], x_var[1][1]), center[0]+30, center[1]-int(radius)+180)
-                self.drawText(img_final, "R: {}, {}".format(x_mu[2], x_var[2][2]), center[0]+30, center[1]-int(radius)+210)
+        if self.tracker:
+            # self.tracker.predict( np.array([0]) )
+            # self.tracker.correct( np.array([ center[0], center[1], radius ]) )
 
+            x_mu, x_var = self.tracker.get_state()
+
+            cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2] * 7e3 + 3 ), (255, 0, 0), -1) #5e4
+            cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (0, 0, 0), int((x_var[0][0]**2 + x_var[1][1]**2) ) ) #1e7
+
+            center = (int(x_mu[0]), int(x_mu[1]))
+            radius = int(x_mu[3])
+
+            self.drawText(img_final, "X: {}, {}".format(x_mu[0], x_var[0][0]), center[0]+30, center[1]-int(radius)+150)
+            self.drawText(img_final, "Y: {}, {}".format(x_mu[1], x_var[1][1]), center[0]+30, center[1]-int(radius)+180)
+            self.drawText(img_final, "R: {}, {}".format(x_mu[2], x_var[2][2]), center[0]+30, center[1]-int(radius)+210)
 
         cv2.imshow("Image window", img_final)
         cv2.waitKey(1)

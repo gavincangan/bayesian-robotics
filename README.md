@@ -119,8 +119,14 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 * Mount LIDAR and webcam
 
 ### 2018/10/15
-- Implimented ball detection
+- Implemented ball detection
 - Restructured repository
+
+### 2018/10/24
+
+- Implemented Kalman filter
+
+
 
 ## TODO
 * Static IP for wifi
