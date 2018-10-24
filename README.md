@@ -125,6 +125,7 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 ### 2018/10/24
 
 - Implemented Kalman filter
+- https://www.youtube.com/watch?v=IeikM8otWBU
 
 
 
