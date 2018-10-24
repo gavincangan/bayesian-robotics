@@ -15,6 +15,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+from kalman_filter import *
 
 class image_converter:
     def __init__(self):
@@ -23,9 +24,11 @@ class image_converter:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_raw",Image,self.callback)
 
-        ## Manually set exposure for camera
-        os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_auto=1")
-        os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_absolute=170")
+        # ## Manually set exposure for camera
+        # os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_auto=1")
+        # os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_absolute=170")
+    
+        self.tracker = None
 
     def callback(self,data):
         try:
@@ -41,10 +44,22 @@ class image_converter:
         for c in circles:
             center = c[0]
             radius = c[1]
-            
+
             cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
+
+            if(not self.tracker):
+                self.tracker = BallTracker(center[0], center[1], radius)
+
+            else:
+                self.tracker.predict( np.array([0]) )
+                self.tracker.correct( np.array([ center[0], center[1], radius ]) )
+
+                x_mu, x_var = self.tracker.get_state()
+
+                cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2]*7e4), (255, 0, 0), -1)
+                cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (0, 0, 0), int((x_var[0][0]**2 + x_var[1][1]**2)*9e8) )
+
             cv2.circle(img_final, center, 5, (255, 0, 255), -1)
-            
             
             ## Display some extra information about the object on-screen
             
@@ -62,7 +77,12 @@ class image_converter:
             bearing = (float(center[0])/(img_final.shape[1]/2)-1)*45.0
             self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
-        
+            if(self.tracker):
+                self.drawText(img_final, "X: {}, {}".format(x_mu[0], x_var[0][0]), center[0]+30, center[1]-int(radius)+150)
+                self.drawText(img_final, "Y: {}, {}".format(x_mu[1], x_var[1][1]), center[0]+30, center[1]-int(radius)+180)
+                self.drawText(img_final, "R: {}, {}".format(x_mu[2], x_var[2][2]), center[0]+30, center[1]-int(radius)+210)
+
+
         cv2.imshow("Image window", img_final)
         cv2.waitKey(1)
         
@@ -137,7 +157,7 @@ class image_converter:
             center = (int(x), int(y))
             
             ## Draw contour
-            #cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
+            cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
             
             ## Only proceed if the radius meets a minimum size
             if radius < min_radius:
