@@ -15,11 +15,14 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+from mbz_c3_jackal.msg import PositionPolar, Vector
+
 from kalman_filter import *
 
 class image_converter:
     def __init__(self):
-        self.image_pub = rospy.Publisher("image_topic_2",Image)
+        self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
+        self.out_pub = rospy.Publisher("polar_pos",PositionPolar, queue_size=32)
         
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("/camera/image_raw",Image,self.callback)
@@ -52,12 +55,6 @@ class image_converter:
             cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
 
             cv2.circle(img_final, center, 5, (255, 0, 255), -1)
-            
-
-            if(not self.tracker):
-                self.tracker = BallTracker(center[0], center[1], radius)
-            else:
-                self.tracker.correct( np.array([ center[0], center[1], radius ]) )
 
             ## Display some extra information about the object on-screen
             ## Get the estimated distance
@@ -74,27 +71,33 @@ class image_converter:
             bearing = (float(center[0])/(img_final.shape[1]/2)-1)*45.0
             self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
+            if(not self.tracker):
+                self.tracker = BearingTracker(z_est, bearing)
+            else:
+                self.tracker.correct( np.array([ z_est, bearing ]) )
+
         if self.tracker:
             # self.tracker.predict( np.array([0]) )
             # self.tracker.correct( np.array([ center[0], center[1], radius ]) )
 
             x_mu, x_var = self.tracker.get_state()
 
-            cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2] * 7e3 + 3 ), (255, 0, 0), -1) #5e4
-            cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (255, 255, 255), int((x_var[0][0]**2 + x_var[1][1]**2) + 2 ) ) #1e7
+            # cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2] * 7e3 + 3 ), (255, 0, 0), -1) #5e4
+            # cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (255, 255, 255), int((x_var[0][0]**2 + x_var[1][1]**2) + 2 ) ) #1e7
 
-            center = (int(x_mu[0]), int(x_mu[1]))
-            radius = int(x_mu[3])
+            out_msg = PositionPolar()
+            out_msg.distance = x_mu[0]
+            out_msg.heading = x_mu[1]
+            out_msg.cov_size = 2
+            out_msg.covariance = x_var.flatten().tolist()
 
-            self.drawText(img_final, "X: {}, {}".format(x_mu[0], x_var[0][0]), center[0]+30, center[1]-int(radius)+150)
-            self.drawText(img_final, "Y: {}, {}".format(x_mu[1], x_var[1][1]), center[0]+30, center[1]-int(radius)+180)
-            self.drawText(img_final, "R: {}, {}".format(x_mu[2], x_var[2][2]), center[0]+30, center[1]-int(radius)+210)
+            self.out_pub.publish(out_msg)
 
         cv2.imshow("Image window", img_final)
         cv2.waitKey(1)
         
         try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(img, "bgr8"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
         except CvBridgeError as e:
             print(e)
 
@@ -183,9 +186,10 @@ class image_converter:
         return circles_out
 
 def main(args):
-    ic = image_converter()
     rospy.init_node('ball_detection', anonymous=True)
     
+    ic = image_converter()
+
     try:
         rospy.spin()
     except KeyboardInterrupt:
