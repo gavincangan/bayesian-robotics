@@ -82,3 +82,37 @@ class BallTracker(KalmanFilter):
         # pdb.set_trace()
         KalmanFilter.correct(self, ty)
         self.yold = y
+
+
+class BearingTracker(KalmanFilter):
+    
+    def __init__(self, _dist, _theta):
+        self.A = np.array([  \
+            [1, 0, 1, 0], \
+            [0, 1, 0, 1], \
+            [0, 0, 1, 0], \
+            [0, 0, 0, 1], \
+        ])
+
+        self.C = np.array([  \
+            [1, 0, 0, 0],   \
+            [0, 1, 0, 0],   \
+            [0, 0, 1, 0],   \
+            [0, 0, 0, 1],   \
+        ])
+
+        self.B = np.array([0])
+        self.D = np.array([0])
+
+        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-5, 1e-4, 1e-6, 1e-4] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0], [1e-2, 5e-5, 1e-3, 1e-4] )
+
+        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e-3, 1e-3, 1e-5, 1e-4] )
+
+        self.yold = [_dist, _theta]
+
+    def correct(self, y):
+        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+        # pdb.set_trace()
+        KalmanFilter.correct(self, ty)
+        self.yold = y
