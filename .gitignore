@@ -3,6 +3,8 @@
 
 *.project
 *.pydevproject
+.vscode
+.ycm_extra_conf.py
 
 /br_f18_project_ws/.catkin_tools/profiles
 /br_f18_project_ws/src/.settings
