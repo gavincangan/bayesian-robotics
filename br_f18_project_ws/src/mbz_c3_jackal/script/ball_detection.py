@@ -81,7 +81,7 @@ class image_converter:
             x_mu, x_var = self.tracker.get_state()
 
             cv2.circle(img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_var[2][2] * 7e3 + 3 ), (255, 0, 0), -1) #5e4
-            cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (0, 0, 0), int((x_var[0][0]**2 + x_var[1][1]**2) ) ) #1e7
+            cv2.circle( img_final, ( int(x_mu[0]), int(x_mu[1]) ), int(x_mu[2]), (255, 255, 255), int((x_var[0][0]**2 + x_var[1][1]**2) + 2 ) ) #1e7
 
             center = (int(x_mu[0]), int(x_mu[1]))
             radius = int(x_mu[3])

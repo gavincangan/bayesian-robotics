@@ -70,10 +70,10 @@ class BallTracker(KalmanFilter):
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-3, 1e-3, 1e-5, 1e-4, 1e-4, 1e-6] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 1e-5, 1e-4, 1e-4, 1e-5] )
+        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 1e-5, 1e-4, 1e-4, 1e-6] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e-2, 1e-4, 1e-4, 1e-3] )
 
-        self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-4, 1e-4, 1e-3, 1e-5, 1e-5, 1e-4] )
+        self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-3, 1e-3, 1e-3, 1e-5, 1e-5, 1e-4] )
 
         self.yold = [_X, _Y, _R]
 
