@@ -5,24 +5,75 @@ import numpy as np
 from sensor_msgs.msg import LaserScan
 #from laser_geometry import LaserProjection
 
+from mbz_c3_jackal.msg import PositionPolar, Vector
+from visualization_msgs.msg import Marker
+
 class Lidar:
     def __init__(self, scan_topic="/scan"):
+        self.bearing = 0.0
+        self.bearing_offset = 0.1
+
         self.scan_sub = rospy.Subscriber(scan_topic, LaserScan, self.on_scan)
-        self.scan_pub = rospy.Publisher("/scan_filtered", LaserScan, queue_size=10)
+        self.cam_pos_sub = rospy.Subscriber("target/cam_position",PositionPolar, self.on_cam_pos)
+        self.marker_pub = rospy.Publisher("target/lidar_marker",Marker, queue_size=32)
+        self.out_pub = rospy.Publisher("target/lidar_position",PositionPolar, queue_size=32)
+        self.scan_pub = rospy.Publisher("/scan/filtered", LaserScan, queue_size=10)
+        
         #self.laser_projector = LaserProjection()
+
+    
+    def on_cam_pos(self, msg):
+        rospy.loginfo("Got cam_position")
+
+        self.bearing = math.radians(msg.heading)
+        #self.bearing_offset = msg.distance/10
+
 
     def on_scan(self, scan):
         rospy.loginfo("Got scan")
 
-        bearing = 0
-        bearing_offset = 0.3
-
-        scan_filtered = self.GetScanInRange(scan, bearing-bearing_offset, bearing+bearing_offset)
+        scan_filtered = self.GetScanInRange(scan, self.bearing-self.bearing_offset, self.bearing+self.bearing_offset)
         self.scan_pub.publish(scan_filtered)
 
-        """
-        cloud = self.laser_projector.projectLaser(scan)
-        """
+        ## Similar to median, but get the 30% closest point rather than the 50%
+        dist = np.percentile(scan_filtered.ranges, 30)
+
+        out_msg = PositionPolar()
+        out_msg.distance = dist
+        out_msg.heading = self.bearing
+        out_msg.cov_size = 2
+        out_msg.covariance = np.array([
+            [0.2, 0],   \
+            [0, 9999],   \
+        ]).flatten().tolist()
+
+        self.out_pub.publish(out_msg)
+        
+        
+
+        ## Create a marker for visualization
+        x = dist * math.cos(self.bearing)
+        y = dist * math.sin(self.bearing)
+
+        marker_msg = Marker()
+        marker_msg.header.frame_id = "laser"
+        marker_msg.id = 0
+        marker_msg.type = 2 #Sphere
+        marker_msg.pose.position.x = x
+        marker_msg.pose.position.y = y
+        marker_msg.pose.position.z = 0
+
+        marker_msg.scale.x = 0.24
+        marker_msg.scale.y = 0.24
+        marker_msg.scale.z = 0.24
+
+        marker_msg.color.r = 1.0
+        marker_msg.color.g = 0.0
+        marker_msg.color.b = 1.0
+        marker_msg.color.a = 1.0
+
+        self.marker_pub.publish(marker_msg)
+
 
     def GetScanInRange(self, scan, angle_min, angle_max):
         scan_filtered = LaserScan()

@@ -4,7 +4,7 @@ from __future__ import print_function
 import sys
 import cv2
 import numpy as np
-from math import pi
+from math import pi, sin, cos, atan, tan, radians, degrees
 from matplotlib import pyplot as plt
 import os
 
@@ -15,6 +15,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+from visualization_msgs.msg import Marker
 from mbz_c3_jackal.msg import PositionPolar, Vector
 
 from kalman_filter import *
@@ -22,14 +23,15 @@ from kalman_filter import *
 class image_converter:
     def __init__(self):
         self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
-        self.out_pub = rospy.Publisher("polar_pos",PositionPolar, queue_size=32)
+        self.out_pub = rospy.Publisher("target/cam_position",PositionPolar, queue_size=32)
+        self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
         
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback)
 
         # ## Manually set exposure for camera
-        # os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_auto=1")
-        # os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_absolute=170")
+        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
+        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
     
         self.tracker = None
 
@@ -60,7 +62,8 @@ class image_converter:
             ## Get the estimated distance
             ## This is the number of pixels we see at 1m for a ball of radius 10cm
             # pixels_at_1m = 142.0 ## Radius = 10cm
-            pixels_at_1m = 163.3 ## Radius = 11.5cm
+            #pixels_at_1m = 180.3 ## Radius = 12.7cm
+            pixels_at_1m = 120 ## Radius = 12.7cm
             
             z_est = pixels_at_1m/radius
             
@@ -68,7 +71,15 @@ class image_converter:
             self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
             
             ## Get estimated bearing, knowing the FOV is 90 degrees
-            bearing = (float(center[0])/(img_final.shape[1]/2)-1)*45.0
+            bearing = -(float(center[0])/(img_final.shape[1]/2)-1)*20.0
+            
+            """
+            w = (img_final.shape[1]/2)
+            x = float(center[0]) - w
+            angle_fov = 45.0
+            bearing = -degrees(atan(x/w*tan(radians(angle_fov))))
+            """
+
             self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
             if(not self.tracker):
@@ -93,6 +104,33 @@ class image_converter:
 
             self.out_pub.publish(out_msg)
 
+
+            ## Create a marker for visualization
+            angle = radians(x_mu[1])
+            x = x_mu[0] * cos(angle)
+            y = x_mu[0] * sin(angle)
+
+            marker_msg = Marker()
+            marker_msg.header.frame_id = "laser"
+            marker_msg.id = 0
+            marker_msg.type = 2 #Sphere
+            marker_msg.pose.position.x = x
+            marker_msg.pose.position.y = y
+            marker_msg.pose.position.z = 0
+
+            marker_msg.scale.x = 0.24
+            marker_msg.scale.y = 0.24
+            marker_msg.scale.z = 0.24
+
+            marker_msg.color.r = 0.0
+            marker_msg.color.g = 0.0
+            marker_msg.color.b = 1.0
+            marker_msg.color.a = 1.0
+
+            self.marker_pub.publish(marker_msg)
+            
+        
+        cv2.imshow("Threshold", img_threshold)
         cv2.imshow("Image window", img_final)
         cv2.waitKey(1)
         
@@ -125,7 +163,7 @@ class image_converter:
         
         ## Let's try to find red objects
         center = 115 #110-120
-        bandwidth = 5
+        bandwidth = 10
         
         _, mask1 = cv2.threshold(h,thresh=center-bandwidth, maxval=1, type=cv2.THRESH_BINARY)
         _, mask2 = cv2.threshold(h,thresh=center+bandwidth, maxval=1, type=cv2.THRESH_BINARY_INV)
