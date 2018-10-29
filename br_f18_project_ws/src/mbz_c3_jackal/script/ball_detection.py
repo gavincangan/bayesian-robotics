@@ -21,11 +21,11 @@ from kalman_filter import *
 
 class image_converter:
     def __init__(self):
-        self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
-        self.out_pub = rospy.Publisher("polar_pos",PositionPolar, queue_size=32)
+        self.image_pub = rospy.Publisher("/image_topic_2", Image, queue_size=32)
+        self.out_pub = rospy.Publisher("/target/cam_pos", PositionPolar, queue_size=32)
         
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/camera/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.callback)
 
         # ## Manually set exposure for camera
         # os.system("v4l2-ctl -d /dev/video1 --set-ctrl=exposure_auto=1")
@@ -88,13 +88,13 @@ class image_converter:
             out_msg = PositionPolar()
             out_msg.distance = x_mu[0]
             out_msg.heading = x_mu[1]
-            out_msg.cov_size = 2
+            out_msg.cov_size = 4
             out_msg.covariance = x_var.flatten().tolist()
 
             self.out_pub.publish(out_msg)
 
-        cv2.imshow("Image window", img_final)
-        cv2.waitKey(1)
+        # cv2.imshow("Image window", img_final)
+        # cv2.waitKey(1)
         
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
@@ -125,7 +125,7 @@ class image_converter:
         
         ## Let's try to find red objects
         center = 115 #110-120
-        bandwidth = 5
+        bandwidth = 10
         
         _, mask1 = cv2.threshold(h,thresh=center-bandwidth, maxval=1, type=cv2.THRESH_BINARY)
         _, mask2 = cv2.threshold(h,thresh=center+bandwidth, maxval=1, type=cv2.THRESH_BINARY_INV)
