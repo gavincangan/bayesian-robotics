@@ -27,15 +27,19 @@ class KalmanFilter:
 
         self.K = _K
 
-    def predict(self, u):
+    def predict(self, u, w=None):
+        if(not w):
+            w = self.w
         tx_mu = np.dot(self.A, self.x.mu) + np.dot(self.B, u)
-        tx_var = np.dot(self.A, np.dot(self.x.var, self.A.T) ) + self.w.var
+        tx_var = np.dot(self.A, np.dot(self.x.var, self.A.T) ) + w.var
 
         self.x.mu, self.x.var = tx_mu, tx_var
 
-    def correct(self, y):
+    def correct(self, y, v=None):
+        if(not v):
+            v = self.v
         yhat_mu = np.dot(self.C, self.x.mu)
-        yhat_var = self.v.var + np.dot(self.C, np.dot( self.x.var, self.C.T ))
+        yhat_var = v.var + np.dot(self.C, np.dot( self.x.var, self.C.T ))
 
         self.K = np.dot( self.x.var, np.dot( self.C.T, np.linalg.inv( yhat_var ) ) )
 
