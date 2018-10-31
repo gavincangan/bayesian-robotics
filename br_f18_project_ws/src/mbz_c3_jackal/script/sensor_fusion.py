@@ -118,7 +118,7 @@ class SensorFusion(KalmanFilter):
             marker_msg.pose.position.z = 0
 
             marker_msg.scale.x = 0.24
-            marker_msg.scale.y = 0.24
+            marker_msg.scale.y =  #0.24
             marker_msg.scale.z = 0.24
 
             marker_msg.color.r = 1.0
