@@ -99,8 +99,15 @@ class image_converter:
             out_msg = PositionPolar()
             out_msg.distance = x_mu[0]
             out_msg.heading = x_mu[1]
-            out_msg.cov_size = x_var.shape()[0]
+            out_msg.cov_size = x_var.shape[0]
+
             out_msg.covariance = x_var.flatten().tolist()
+            # out_msg.covariance = np.array([
+            #     [9999, 0, 0, 0],   \
+            #     [0, 1e-10, 0, 0],   \
+            #     [0, 0, 9999, 0],   \
+            #     [0, 0, 0, 1e-10],   \
+            # ]).flatten().tolist()
 
             self.out_pub.publish(out_msg)
 
@@ -110,7 +117,7 @@ class image_converter:
             y = x_mu[0] * sin(angle)
 
             marker_msg = Marker()
-            marker_msg.header.frame_id = "camera"
+            marker_msg.header.frame_id = "laser"
             marker_msg.id = 0
             marker_msg.type = 2 #Sphere
             marker_msg.pose.position.x = x
@@ -124,7 +131,7 @@ class image_converter:
             marker_msg.color.r = 0.0
             marker_msg.color.g = 0.0
             marker_msg.color.b = 1.0
-            marker_msg.color.a = 1.0
+            marker_msg.color.a = 0.75
 
             self.marker_pub.publish(marker_msg)
             

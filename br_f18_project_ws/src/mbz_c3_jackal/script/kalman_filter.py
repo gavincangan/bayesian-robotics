@@ -28,18 +28,27 @@ class KalmanFilter:
         self.K = _K
 
     def predict(self, u, w=None):
-        if(not w):
-            w = self.w
+        if(w is None):
+            w_var = self.w.var
+
         tx_mu = np.dot(self.A, self.x.mu) + np.dot(self.B, u)
-        tx_var = np.dot(self.A, np.dot(self.x.var, self.A.T) ) + w.var
+        tx_var = np.dot(self.A, np.dot(self.x.var, self.A.T) ) + w_var
 
         self.x.mu, self.x.var = tx_mu, tx_var
 
     def correct(self, y, v=None):
-        if(not v):
-            v = self.v
+
+        if v is None:
+            v_var = self.v.var
+        elif isinstance(v, np.ndarray):
+            v_var = v
+        elif isinstance(v, Gaussian):
+            v_var = v.var
+        else:
+            raise NotImplementedError
+
         yhat_mu = np.dot(self.C, self.x.mu)
-        yhat_var = v.var + np.dot(self.C, np.dot( self.x.var, self.C.T ))
+        yhat_var = v_var + np.dot(self.C, np.dot( self.x.var, self.C.T ))
 
         self.K = np.dot( self.x.var, np.dot( self.C.T, np.linalg.inv( yhat_var ) ) )
 
@@ -74,8 +83,8 @@ class BallTracker(KalmanFilter):
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 1e-5, 1e-4, 1e-4, 1e-6] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e-2, 1e-4, 1e-4, 1e-3] )
+        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 5e-0, 1e-4, 1e-4, 5e-0] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e0, 1e-4, 1e-4, 5e-1] )
 
         self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-3, 1e-3, 1e-3, 1e-5, 1e-5, 1e-4] )
 
@@ -108,10 +117,10 @@ class BearingTracker(KalmanFilter):
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-5, 1e-4, 1e-6, 1e-4] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0], [1e-2, 5e-5, 1e-3, 1e-4] )
+        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-1, 1e-4, 1e-1, 1e-4] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0], [5e0, 1e-2, 5e-1, 1e-2] )
 
-        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e-3, 1e-3, 1e-5, 1e-4] )
+        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e0, 1e-3, 1e-1, 1e-2] )
 
         self.yold = [_dist, _theta]
 

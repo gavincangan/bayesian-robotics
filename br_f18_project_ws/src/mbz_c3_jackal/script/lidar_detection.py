@@ -23,14 +23,14 @@ class Lidar:
 
     
     def on_cam_pos(self, msg):
-        rospy.loginfo("Got cam_position")
+        # rospy.loginfo("Got cam_position")
 
         self.bearing = math.radians(msg.heading)
         #self.bearing_offset = msg.distance/10
 
 
     def on_scan(self, scan):
-        rospy.loginfo("Got scan")
+        # rospy.loginfo("Got scan")
 
         scan_filtered = self.GetScanInRange(scan, self.bearing-self.bearing_offset, self.bearing+self.bearing_offset)
         self.scan_pub.publish(scan_filtered)
@@ -40,11 +40,18 @@ class Lidar:
 
         out_msg = PositionPolar()
         out_msg.distance = dist
-        out_msg.heading = self.bearing
-        out_msg.cov_size = 2
+        out_msg.heading = math.degrees(self.bearing)
+        out_msg.cov_size = 4
+        # out_msg.covariance = np.array([
+        #     [0.2, 0],   \
+        #     [0, 9999],   \
+        # ]).flatten().tolist()
+
         out_msg.covariance = np.array([
-            [0.2, 0],   \
-            [0, 9999],   \
+            [1e-2, 0, 0, 0],   \
+            [0, 1e-1, 0, 0],   \
+            [0, 0, 1e-3, 0],   \
+            [0, 0, 0, 2e-2],   \
         ]).flatten().tolist()
 
         self.out_pub.publish(out_msg)
@@ -70,7 +77,7 @@ class Lidar:
         marker_msg.color.r = 1.0
         marker_msg.color.g = 0.0
         marker_msg.color.b = 1.0
-        marker_msg.color.a = 1.0
+        marker_msg.color.a = 0.75
 
         self.marker_pub.publish(marker_msg)
 

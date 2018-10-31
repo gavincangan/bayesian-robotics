@@ -8,6 +8,8 @@ from math import pi, sin, cos, atan, tan, radians, degrees
 from matplotlib import pyplot as plt
 import os
 
+# import pdb
+
 import threading, time
 
 import roslib
@@ -16,7 +18,7 @@ import rospy
 
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point, Quaternion, Pose, PoseWithCovariance
+from geometry_msgs.msg import Point, Quaternion, Pose, PoseWithCovariance, PoseWithCovarianceStamped
 from visualization_msgs.msg import Marker
 
 from mbz_c3_jackal.msg import PositionPolar, Vector
@@ -36,37 +38,48 @@ class SensorFusion(KalmanFilter):
         self.C = np.array([  \
             [1, 0, 0, 0 ],   \
             [0, 1, 0, 0 ],   \
+            [0, 0, 1, 0 ], \
+            [0, 0, 0, 1 ], \
         ])
 
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-5, 1e-4, 1e-6, 1e-4 ] )
-        self.v = Gaussian.diagonal( [0, 0], [1e-2, 5e-5] )
+        self.w = Gaussian.diagonal( [0, 0, 0, 0], [3e-1, 3e-1, 5e-2, 5e-2 ] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0], [1e-2, 5e-2, 1e-2, 5e-2] )
 
-        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e-3, 1e-5, 1e-4, 1e-3] )
+        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [9999, 9999, 1e+2, 1e+2] )
 
-        self.yold = [_dist, _theta]
+        self.yold = { 'camera':[_dist, _theta], 'lidar':[_dist, _theta] }
 
         # self.v_lidar = Gaussian.diagonal( [0, 0], [1e-8, 5e-1] )
         # self.v_cam = Gaussian.diagonal( [0, 0], [1e-2, 5e-7] )
 
-        self.lidar_sub = rospy.Subscriber("/target/lidar_pos",PositionPolar, self.lidar_cb)
-        self.cam_sub = rospy.Subscriber("/target/cam_pos", PositionPolar, self.camera_cb)
+        self.lidar_sub = rospy.Subscriber("/target/lidar_position",PositionPolar, self.lidar_cb)
+        self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
 
         self.marker_pub = rospy.Publisher("target/fused_marker", Marker, queue_size=32)
-        self.out_pub = rospy.Publisher("/target/fused_pos", PositionPolar, queue_size=32)
+        self.out_pub = rospy.Publisher("/target/fused_position", PositionPolar, queue_size=32)
+        self.out_pose = rospy.Publisher("/target/pose_with_cov", PoseWithCovarianceStamped, queue_size=32)
 
-    def correct(self, y, v=None):
-        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+    def correct(self, y, v=None, sensor='camera'):
+        self.predict()
+
+        ty = np.append(y, [ y[ix]-self.yold[sensor][ix] for ix in range(len(y)) ] )
+
+        # print('y: ', ty)
+        # print('cov:\n', v)
+
         KalmanFilter.correct(self, ty, v)
-        self.yold = y
+        self.yold[sensor] = y
 
     def lidar_cb(self, data):
+        # rospy.loginfo("SF: Got LIDAR position")
+
         data.covariance = np.array(data.covariance).reshape( (-1, data.cov_size) )
 
         y = np.array([ data.distance, data.heading ])
-        self.correct( y, data.covariance[:2, :2] )
+        self.correct( y, data.covariance[:4, :4], sensor='lidar' )
 
         # print('\nLIDAR:')
         # print(data.distance)
@@ -75,10 +88,12 @@ class SensorFusion(KalmanFilter):
         # print(data.covariance)
 
     def camera_cb(self, data):
+        # rospy.loginfo("SF: Got camera position")
+
         data.covariance = np.array(data.covariance).reshape( (-1, data.cov_size) )
 
         y = np.array([ data.distance, data.heading ])
-        self.correct( y, data.covariance[:2, :2] )
+        self.correct( y, data.covariance[:4, :4], sensor='camera' )
 
         # print('\nCamera:')
         # print(data.distance)
@@ -87,19 +102,23 @@ class SensorFusion(KalmanFilter):
         # print(data.covariance)
 
     def predict(self, u=np.array([0]), w=None):
-        self.publish()
         KalmanFilter.predict(self, u, w)
 
     def publish(self):
         next_pub = time.time()
 
+        count = 0
+        msg_seq = 1
         while True:
+            # count += 1
+            # if count%1 == 0:
+
             x_mu, x_var = self.get_state()
 
             out_msg = PositionPolar()
             out_msg.distance = x_mu[0]
             out_msg.heading = x_mu[1]
-            out_msg.cov_size = x_var.shape()[0]
+            out_msg.cov_size = x_var.shape[0]
             out_msg.covariance = x_var.flatten().tolist()
 
             self.out_pub.publish(out_msg)
@@ -110,26 +129,58 @@ class SensorFusion(KalmanFilter):
             y = x_mu[0] * sin(angle)
 
             marker_msg = Marker()
-            marker_msg.header.frame_id = "fused"
+            marker_msg.header.frame_id = "laser"
             marker_msg.id = 0
             marker_msg.type = 2 #Sphere
             marker_msg.pose.position.x = x
             marker_msg.pose.position.y = y
             marker_msg.pose.position.z = 0
 
-            marker_msg.scale.x = 0.24
-            marker_msg.scale.y =  #0.24
-            marker_msg.scale.z = 0.24
+            marker_msg.scale.x = 0.27
+            marker_msg.scale.y = 0.27
+            marker_msg.scale.z = 0.27
 
             marker_msg.color.r = 1.0
             marker_msg.color.g = 1.0
-            marker_msg.color.b = 0.0
-            marker_msg.color.a = 1.0
+            marker_msg.color.b = 0.5
+            marker_msg.color.a = 0.85
 
             self.marker_pub.publish(marker_msg)
 
-            next_pub = next_pub + 0.1
-            time.sleep( next_pub - time.time() )
+            #Point, Quaternion, Pose, PoseWithCovariance
+            pose_with_cov = PoseWithCovarianceStamped()
+
+
+            pose_with_cov.header.seq = msg_seq
+            msg_seq += 1
+            pose_with_cov.header.stamp = rospy.get_rostime()
+            pose_with_cov.header.frame_id = "laser"
+
+            pose_with_cov.pose.pose.position.x = x
+            pose_with_cov.pose.pose.position.y = y
+            pose_with_cov.pose.pose.position.z = 0
+            
+            pose_with_cov.pose.pose.orientation.w = 1
+
+            jac = np.array([    [ np.cos(angle) , np.sin(angle) ],  \
+                                [ -np.sin(angle), np.cos(angle) ]   \
+                            ])
+            cov_rt = self.x.var[:2, :2]
+            cov_xy = np.eye(6)
+            cov_xy[:2, :2] = np.dot( np.dot( jac, cov_rt ), jac.T )
+            # cov_xy = np.pad(cov_xy, ((0, 4), (0, 4)), 'constant', constant_values=(1, 1) )
+            pose_with_cov.pose.covariance = cov_xy.flatten().tolist()
+
+            self.out_pose.publish(pose_with_cov)
+
+            # next_pub = next_pub + 0.1          
+            # time.sleep( next_pub - time.time() )
+
+                # if(count > 1000):
+                #     count %= 1000
+
+            rate = rospy.Rate(10)
+            rate.sleep()
 
 
 def main():
