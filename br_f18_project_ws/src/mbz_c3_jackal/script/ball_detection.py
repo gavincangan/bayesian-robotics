@@ -27,7 +27,7 @@ class image_converter:
         self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
         
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/usb_cam/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("usb_cam/image_raw",Image,self.callback)
 
         # ## Manually set exposure for camera
         # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
@@ -99,7 +99,7 @@ class image_converter:
             out_msg = PositionPolar()
             out_msg.distance = x_mu[0]
             out_msg.heading = x_mu[1]
-            out_msg.cov_size = 4
+            out_msg.cov_size = x_var.shape()[0]
             out_msg.covariance = x_var.flatten().tolist()
 
             self.out_pub.publish(out_msg)
@@ -110,7 +110,7 @@ class image_converter:
             y = x_mu[0] * sin(angle)
 
             marker_msg = Marker()
-            marker_msg.header.frame_id = "laser"
+            marker_msg.header.frame_id = "camera"
             marker_msg.id = 0
             marker_msg.type = 2 #Sphere
             marker_msg.pose.position.x = x
@@ -129,9 +129,9 @@ class image_converter:
             self.marker_pub.publish(marker_msg)
             
         
-        cv2.imshow("Threshold", img_threshold)
-        cv2.imshow("Image window", img_final)
-        cv2.waitKey(1)
+        # cv2.imshow("Threshold", img_threshold)
+        # cv2.imshow("Image window", img_final)
+        # cv2.waitKey(1)
        
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
