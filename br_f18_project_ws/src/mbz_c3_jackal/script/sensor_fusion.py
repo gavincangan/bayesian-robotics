@@ -5,7 +5,7 @@ import sys
 import cv2
 import numpy as np
 from math import pi, sin, cos, atan, tan, radians, degrees
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import os
 
 # import pdb
@@ -51,6 +51,8 @@ class SensorFusion(KalmanFilter):
         self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [9999, 9999, 1e+2, 1e+2] )
 
         self.yold = { 'camera':[_dist, _theta], 'lidar':[_dist, _theta] }
+
+        self.mahalonobis_threshold = 1.0
 
         # self.v_lidar = Gaussian.diagonal( [0, 0], [1e-8, 5e-1] )
         # self.v_cam = Gaussian.diagonal( [0, 0], [1e-2, 5e-7] )
@@ -128,24 +130,24 @@ class SensorFusion(KalmanFilter):
             x = x_mu[0] * cos(angle)
             y = x_mu[0] * sin(angle)
 
-            marker_msg = Marker()
-            marker_msg.header.frame_id = "laser"
-            marker_msg.id = 0
-            marker_msg.type = 2 #Sphere
-            marker_msg.pose.position.x = x
-            marker_msg.pose.position.y = y
-            marker_msg.pose.position.z = 0
+            # marker_msg = Marker()
+            # marker_msg.header.frame_id = "base_link"
+            # marker_msg.id = 0
+            # marker_msg.type = 2 #Sphere
+            # marker_msg.pose.position.x = x
+            # marker_msg.pose.position.y = y
+            # marker_msg.pose.position.z = 0
 
-            marker_msg.scale.x = 0.27
-            marker_msg.scale.y = 0.27
-            marker_msg.scale.z = 0.27
+            # marker_msg.scale.x = 0.27
+            # marker_msg.scale.y = 0.27
+            # marker_msg.scale.z = 0.27
 
-            marker_msg.color.r = 1.0
-            marker_msg.color.g = 1.0
-            marker_msg.color.b = 0.5
-            marker_msg.color.a = 0.85
+            # marker_msg.color.r = 1.0
+            # marker_msg.color.g = 1.0
+            # marker_msg.color.b = 0.5
+            # marker_msg.color.a = 0.85
 
-            self.marker_pub.publish(marker_msg)
+            # self.marker_pub.publish(marker_msg)
 
             #Point, Quaternion, Pose, PoseWithCovariance
             pose_with_cov = PoseWithCovarianceStamped()

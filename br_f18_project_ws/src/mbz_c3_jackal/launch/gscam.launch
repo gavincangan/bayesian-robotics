@@ -2,7 +2,7 @@
   <!-- This launchfile should bring up a node that broadcasts a ros image
        transport on /webcam/image_raw -->
 
-  <arg name="DEVICE" default="/dev/video0"/>
+  <arg name="DEVICE" default="/dev/video1"/>
   <!-- The GStreamer framerate needs to be an integral fraction -->
   <arg name="FPS" default="30"/>
   <arg name="PUBLISH_FRAME" default="false"/>

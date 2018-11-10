@@ -27,6 +27,8 @@ class KalmanFilter:
 
         self.K = _K
 
+        self.mahalonobis_threshold = np.inf #1.0
+
     def predict(self, u, w=None):
         if(w is None):
             w_var = self.w.var
@@ -47,85 +49,21 @@ class KalmanFilter:
         else:
             raise NotImplementedError
 
-        yhat_mu = np.dot(self.C, self.x.mu)
-        yhat_var = v_var + np.dot(self.C, np.dot( self.x.var, self.C.T ))
+        innov_mu = y - np.dot(self.C, self.x.mu)
+        innov_var = np.linalg.inv( v_var + np.dot(self.C, np.dot( self.x.var, self.C.T )) )
 
-        self.K = np.dot( self.x.var, np.dot( self.C.T, np.linalg.inv( yhat_var ) ) )
+        mahalonobis_dist = np.dot(innov_mu, np.dot(innov_var, innov_mu ) )
+        
+        # if(mahalonobis_dist <= self.mahalonobis_threshold):
 
-        self.x.mu = self.x.mu + np.dot( self.K, (y-yhat_mu) )
+        self.K = np.dot( self.x.var, np.dot( self.C.T, innov_var ) )
+
+        self.x.mu = self.x.mu + np.dot( self.K, innov_mu )
         self.x.var = self.x.var - np.dot( self.K, np.dot( self.C, self.x.var ) )
+
+        # else:
+        #     print('M dist: {}\tRejecting measurement: {}'.format(mahalonobis_dist, y))
         # self.x.var = self.x.var - np.dot( self.K, np.dot( yhat_var, self.K.T ) )
 
     def get_state(self):
         return self.x.mu, self.x.var
-
-class BallTracker(KalmanFilter):
-    
-    def __init__(self, _X, _Y, _R):
-        self.A = np.array([  \
-            [1, 0, 0, 1, 0, 0], \
-            [0, 1, 0, 0, 1, 0], \
-            [0, 0, 1, 0, 0, 1], \
-            [0, 0, 0, 1, 0, 0], \
-            [0, 0, 0, 0, 1, 0], \
-            [0, 0, 0, 0, 0, 1], \
-        ])
-
-        self.C = np.array([  \
-            [1, 0, 0, 0, 0, 0],   \
-            [0, 1, 0, 0, 0, 0],   \
-            [0, 0, 1, 0, 0, 0],   \
-            [0, 0, 0, 1, 0, 0],   \
-            [0, 0, 0, 0, 1, 0],   \
-            [0, 0, 0, 0, 0, 1],   \
-        ])
-
-        self.B = np.array([0])
-        self.D = np.array([0])
-
-        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 5e-0, 1e-4, 1e-4, 5e-0] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e0, 1e-4, 1e-4, 5e-1] )
-
-        self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-3, 1e-3, 1e-3, 1e-5, 1e-5, 1e-4] )
-
-        self.yold = [_X, _Y, _R]
-
-    def correct(self, y):
-        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
-        # pdb.set_trace()
-        KalmanFilter.correct(self, ty)
-        self.yold = y
-
-
-class BearingTracker(KalmanFilter):
-    
-    def __init__(self, _dist, _theta):
-        self.A = np.array([  \
-            [1, 0, 1, 0], \
-            [0, 1, 0, 1], \
-            [0, 0, 1, 0], \
-            [0, 0, 0, 1], \
-        ])
-
-        self.C = np.array([  \
-            [1, 0, 0, 0],   \
-            [0, 1, 0, 0],   \
-            [0, 0, 1, 0],   \
-            [0, 0, 0, 1],   \
-        ])
-
-        self.B = np.array([0])
-        self.D = np.array([0])
-
-        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-1, 1e-4, 1e-1, 1e-4] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0], [5e0, 1e-2, 5e-1, 1e-2] )
-
-        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e0, 1e-3, 1e-1, 1e-2] )
-
-        self.yold = [_dist, _theta]
-
-    def correct(self, y):
-        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
-        # pdb.set_trace()
-        KalmanFilter.correct(self, ty)
-        self.yold = y

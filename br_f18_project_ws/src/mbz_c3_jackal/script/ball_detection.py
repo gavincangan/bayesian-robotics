@@ -5,20 +5,20 @@ import sys
 import cv2
 import numpy as np
 from math import pi, sin, cos, atan, tan, radians, degrees
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import os
 
 import roslib
 roslib.load_manifest('mbz_c3_jackal')
 import rospy
 from std_msgs.msg import String
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 
 from visualization_msgs.msg import Marker
 from mbz_c3_jackal.msg import PositionPolar, Vector
 
-from kalman_filter import *
+from kalman_filter import KalmanFilter, Gaussian
 
 class image_converter:
     def __init__(self):
@@ -27,19 +27,25 @@ class image_converter:
         self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
         
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("usb_cam/image_raw",Image,self.callback)
+        self.image_sub = rospy.Subscriber("usb_cam/image_raw/compressed", CompressedImage, self.callback)
 
         # ## Manually set exposure for camera
         # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
         # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
     
         self.tracker = None
+        self.gui = False
 
-    def callback(self,data):
+    def callback(self, data):
+        # rospy.loginfo("Received usb cam data")
         try:
-            img = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            img_np_arr = np.fromstring(data.data, np.uint8)
+            img = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
+            # img = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
+        except Exception as ex:
+            print(ex)
         
         img_threshold = self.colorThreshold(img)
         circles = self.detectCircles(img_threshold)
@@ -54,9 +60,9 @@ class image_converter:
             center = c[0]
             radius = c[1]
 
-            cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
-
-            cv2.circle(img_final, center, 5, (255, 0, 255), -1)
+            if self.gui:
+                cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
+                cv2.circle(img_final, center, 5, (255, 0, 255), -1)
 
             ## Display some extra information about the object on-screen
             ## Get the estimated distance
@@ -68,7 +74,7 @@ class image_converter:
             z_est = pixels_at_1m/radius
             
             #self.drawText(img_final, "Radius: {:3.1f} px".format(radius), center[0], center[1])
-            self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
+            # self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
             
             ## Get estimated bearing, knowing the FOV is 90 degrees
             bearing = -(float(center[0])/(img_final.shape[1]/2)-1)*20.0
@@ -79,8 +85,8 @@ class image_converter:
             angle_fov = 45.0
             bearing = -degrees(atan(x/w*tan(radians(angle_fov))))
             """
-
-            self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
+            if self.gui:
+                self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
             if(not self.tracker):
                 self.tracker = BearingTracker(z_est, bearing)
@@ -111,29 +117,29 @@ class image_converter:
 
             self.out_pub.publish(out_msg)
 
-            ## Create a marker for visualization
-            angle = radians(x_mu[1])
-            x = x_mu[0] * cos(angle)
-            y = x_mu[0] * sin(angle)
+            # ## Create a marker for visualization
+            # angle = radians(x_mu[1])
+            # x = x_mu[0] * cos(angle)
+            # y = x_mu[0] * sin(angle)
 
-            marker_msg = Marker()
-            marker_msg.header.frame_id = "laser"
-            marker_msg.id = 0
-            marker_msg.type = 2 #Sphere
-            marker_msg.pose.position.x = x
-            marker_msg.pose.position.y = y
-            marker_msg.pose.position.z = 0
+            # marker_msg = Marker()
+            # marker_msg.header.frame_id = "laser"
+            # marker_msg.id = 0
+            # marker_msg.type = 2 #Sphere
+            # marker_msg.pose.position.x = x
+            # marker_msg.pose.position.y = y
+            # marker_msg.pose.position.z = 0
 
-            marker_msg.scale.x = 0.24
-            marker_msg.scale.y = 0.24
-            marker_msg.scale.z = 0.24
+            # marker_msg.scale.x = 0.24
+            # marker_msg.scale.y = 0.24
+            # marker_msg.scale.z = 0.24
 
-            marker_msg.color.r = 0.0
-            marker_msg.color.g = 0.0
-            marker_msg.color.b = 1.0
-            marker_msg.color.a = 0.75
+            # marker_msg.color.r = 0.0
+            # marker_msg.color.g = 0.0
+            # marker_msg.color.b = 1.0
+            # marker_msg.color.a = 0.75
 
-            self.marker_pub.publish(marker_msg)
+            # self.marker_pub.publish(marker_msg)
             
         
         # cv2.imshow("Threshold", img_threshold)
@@ -147,8 +153,9 @@ class image_converter:
 
 
     def drawText(self, img, text, x, y):
-        cv2.putText(img, text, (x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(  0,  0,  0), lineType=cv2.LINE_AA, thickness=5, bottomLeftOrigin=False)
-        cv2.putText(img, text, (x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(255,255,255), lineType=cv2.LINE_AA, thickness=2, bottomLeftOrigin=False)
+        if self.gui:
+            cv2.putText(img, text, (x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(  0,  0,  0), lineType=cv2.LINE_AA, thickness=5, bottomLeftOrigin=False)
+            cv2.putText(img, text, (x, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7, color=(255,255,255), lineType=cv2.LINE_AA, thickness=2, bottomLeftOrigin=False)
     
     
     def colorThreshold(self, img):  
@@ -211,7 +218,8 @@ class image_converter:
             center = (int(x), int(y))
             
             ## Draw contour
-            cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
+            if self.gui:
+                cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
             
             ## Only proceed if the radius meets a minimum size
             if radius < min_radius:
@@ -229,6 +237,81 @@ class image_converter:
         
         return circles_out
 
+class BallTracker(KalmanFilter):
+    
+    def __init__(self, _X, _Y, _R):
+        self.A = np.array([  \
+            [1, 0, 0, 1, 0, 0], \
+            [0, 1, 0, 0, 1, 0], \
+            [0, 0, 1, 0, 0, 1], \
+            [0, 0, 0, 1, 0, 0], \
+            [0, 0, 0, 0, 1, 0], \
+            [0, 0, 0, 0, 0, 1], \
+        ])
+
+        self.C = np.array([  \
+            [1, 0, 0, 0, 0, 0],   \
+            [0, 1, 0, 0, 0, 0],   \
+            [0, 0, 1, 0, 0, 0],   \
+            [0, 0, 0, 1, 0, 0],   \
+            [0, 0, 0, 0, 1, 0],   \
+            [0, 0, 0, 0, 0, 1],   \
+        ])
+
+        self.B = np.array([0])
+        self.D = np.array([0])
+
+        self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 5e-0, 1e-4, 1e-4, 5e-0] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e0, 1e-4, 1e-4, 5e-1] )
+
+        self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-3, 1e-3, 1e-3, 1e-5, 1e-5, 1e-4] )
+
+        self.yold = [_X, _Y, _R]
+
+        self.mahalonobis_threshold = 1.0
+
+    def correct(self, y):
+        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+        # pdb.set_trace()
+        KalmanFilter.correct(self, ty)
+        self.yold = y
+
+
+class BearingTracker(KalmanFilter):
+    
+    def __init__(self, _dist, _theta):
+        self.A = np.array([  \
+            [1, 0, 1, 0], \
+            [0, 1, 0, 1], \
+            [0, 0, 1, 0], \
+            [0, 0, 0, 1], \
+        ])
+
+        self.C = np.array([  \
+            [1, 0, 0, 0],   \
+            [0, 1, 0, 0],   \
+            [0, 0, 1, 0],   \
+            [0, 0, 0, 1],   \
+        ])
+
+        self.B = np.array([0])
+        self.D = np.array([0])
+
+        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-1, 1e-4, 1e-1, 1e-4] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0], [5e0, 1e-2, 5e-1, 1e-2] )
+
+        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e0, 1e-3, 1e-1, 1e-2] )
+
+        self.yold = [_dist, _theta]
+
+        self.mahalonobis_threshold = 1.0
+
+    def correct(self, y):
+        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+        # pdb.set_trace()
+        KalmanFilter.correct(self, ty)
+        self.yold = y
+
 def main(args):
     rospy.init_node('ball_detection', anonymous=True)
     
@@ -239,7 +322,8 @@ def main(args):
     except KeyboardInterrupt:
         print("Shutting down")
     
-    cv2.destroyAllWindows()
+    if self.gui:
+        cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     main(sys.argv)

@@ -8,10 +8,12 @@ from sensor_msgs.msg import LaserScan
 from mbz_c3_jackal.msg import PositionPolar, Vector
 from visualization_msgs.msg import Marker
 
+from kalman_filter import KalmanFilter, Gaussian
+
 class Lidar:
     def __init__(self, scan_topic="/scan"):
         self.bearing = 0.0
-        self.bearing_offset = 0.1
+        self.bearing_offset = 0.2
 
         self.scan_sub = rospy.Subscriber(scan_topic, LaserScan, self.on_scan)
         self.cam_pos_sub = rospy.Subscriber("target/cam_position",PositionPolar, self.on_cam_pos)
@@ -19,9 +21,6 @@ class Lidar:
         self.out_pub = rospy.Publisher("target/lidar_position",PositionPolar, queue_size=32)
         self.scan_pub = rospy.Publisher("/scan/filtered", LaserScan, queue_size=10)
         
-        #self.laser_projector = LaserProjection()
-
-    
     def on_cam_pos(self, msg):
         # rospy.loginfo("Got cam_position")
 
@@ -124,6 +123,62 @@ class Lidar:
             print("Angle: {:3.2f} deg, Range: {:2.2f}".format(angle_deg, scan.ranges[i]))
         """
         return scan_filtered
+
+class LidarTracker(KalmanFilter):
+    
+    def __init__(self, _dist, _theta):
+        self.A = np.array([  \
+            [1, 0, 1, 0], \
+            [0, 1, 0, 1], \
+            [0, 0, 1, 0], \
+            [0, 0, 0, 1], \
+        ])
+
+        self.C = np.array([  \
+            [1, 0, 0, 0],   \
+            [0, 1, 0, 0],   \
+            [0, 0, 1, 0],   \
+            [0, 0, 0, 1],   \
+        ])
+
+        self.B = np.array([0])
+        self.D = np.array([0])
+
+        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-1, 1e-4, 1e-1, 1e-4] )
+        self.v = Gaussian.diagonal( [0, 0, 0, 0], [1e-2, 2e-1, 5e-1, 1e-2] )
+
+        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e0, 1e0, 1e0, 1e0] )
+
+        self.yold = [_dist, _theta]
+
+        self.mahalonobis_threshold = 1.0
+
+    def correct(self, y):
+
+        innov_var = np.linalg.inv( self.v.var + np.dot(self.C, np.dot( self.x.var, self.C.T )) )
+
+        all_innov_mu = []
+        all_mahalonobis_dist = []
+        for ty in y:
+            t_innov_mu = ty - np.dot(self.C, self.x.mu)
+            all_innov_mu.append( t_innov_mu )
+            all_mahalonobis_dist.append( np.dot(t_innov_mu, np.dot(innov_var, t_innov_mu ) ) )
+        
+        all_mahalonobis_dist = np.array(all_mahalonobis_dist)
+
+        match_y = 0
+        match_innov_mu = 0
+
+
+
+        y_app = np.append(match_y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+
+        self.K = np.dot( self.x.var, np.dot( self.C.T, innov_var ) )
+
+        self.x.mu = self.x.mu + np.dot( self.K, match_innov_mu )
+        self.x.var = self.x.var - np.dot( self.K, np.dot( self.C, self.x.var ) )
+
+        self.yold = y
 
 if __name__=="__main__":
     rospy.init_node("lidar_detection", anonymous=True)
