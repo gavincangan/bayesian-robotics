@@ -31,7 +31,7 @@ sudo apt-get install ros-kinetic-cv-bridge
 Edit `/etc/hosts` and add the following line:
 
 ```
-192.168.1.11    cpr-jackal
+192.168.1.24    cpr-jackal
 ```
 
 ### Install this workspace
@@ -74,15 +74,22 @@ export ROS_MASTER_URI=http://cpr-jackal:11311
 export ROS_IP=<your computer's IP address>
 ```
 
-### Start the webcam and lidar
+### Start nodes on jackal
 ```
-roslaunch mbz_c3_jackal gscam.launch
-rosrun hokuyo_node hokuyo_node
+#Kill odometry as that messes with frames
+killall ekf_localization_node
+
+nohup roslaunch mbz_c3_jackal accessories.launch &
+roslaunch mbz_c3_jackal sensing.launch
 ```
 
-### Run the ball detection
+### Start nodes on base station
 ```
-rosrun mbz_c3_jackal ball_detection.py 
+rosrun mbz_c3_jackal visualize_trackers.py
+roslaunch mbz_c3_jackal mapping.launch
+rosrun mbz_c3_jackal information_loss_map.py
+rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+rviz
 ```
 
 ### Getting the Jackal to work with keyboard teleop
@@ -133,9 +140,6 @@ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 * Static IP for wifi
 * Build map in realtime (offboard mapping/play with settings in hector?)
 * Move using waypoint
-* Image processing for flame detection
-* A way of getting flame's position relative to UGV
-* Stream compressed webcam feed
 * Document upstart and add webcam to startup scripts
 
 ## 5. Contributors

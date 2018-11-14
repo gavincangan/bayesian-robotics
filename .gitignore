@@ -6,7 +6,7 @@
 .vscode
 .ycm_extra_conf.py
 
-/br_f18_project_ws/.catkin_tools/profiles
+/br_f18_project_ws/.catkin_tools/profiles/
 /br_f18_project_ws/src/.settings
 
 /br_f18_project_ws/build
@@ -19,3 +19,5 @@
 /br_f18_project_ws/src/usb_cam
 /br_f18_project_ws/src/hector_slam
 /br_f18_project_ws/src/teleop_keyobard_twist
+
+/br_f18_catkinmake_ws/

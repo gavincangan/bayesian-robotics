@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 from math import pi, sin, cos, atan, tan, radians, degrees
 
@@ -13,9 +15,9 @@ class AllMarkers:
         self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
         self.fused_sub = rospy.Subscriber("/target/fused_position", PositionPolar, self.fused_cb)
 
-        self.fused_marker_pub = rospy.Publisher("target/fused_marker", Marker, queue_size=32)
-        self.lidar_marker_pub = rospy.Publisher("target/lidar_marker", Marker, queue_size=32)
-        self.cam_marker_pub = rospy.Publisher("target/cam_marker", Marker, queue_size=32)
+        self.fused_marker_pub = rospy.Publisher("target/fused_marker2", Marker, queue_size=32)
+        self.lidar_marker_pub = rospy.Publisher("target/lidar_marker2", Marker, queue_size=32)
+        self.cam_marker_pub = rospy.Publisher("target/cam_marker2", Marker, queue_size=32)
 
 
     def publisher( self, data, pub=None, color=(1.0, 1.0, 1.0, 1.0) ):
@@ -31,6 +33,11 @@ class AllMarkers:
         marker_msg.pose.position.x = x
         marker_msg.pose.position.y = y
         marker_msg.pose.position.z = 0
+
+	size = 0.22
+	marker_msg.scale.x = size
+	marker_msg.scale.y = size
+	marker_msg.scale.z = size
 
         marker_msg.color.r = color[0]
         marker_msg.color.g = color[1]
