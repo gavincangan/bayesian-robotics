@@ -28,29 +28,19 @@ from kalman_filter import *
 class SensorFusion(KalmanFilter):
     
     def __init__(self, _dist, _theta):
-        self.A = np.array([  \
-            [1, 0, 1, 0 ], \
-            [0, 1, 0, 1 ], \
-            [0, 0, 1, 0 ], \
-            [0, 0, 0, 1 ], \
-        ])
+        self.A = np.eye(2)
 
-        self.C = np.array([  \
-            [1, 0, 0, 0 ],   \
-            [0, 1, 0, 0 ],   \
-            [0, 0, 1, 0 ], \
-            [0, 0, 0, 1 ], \
-        ])
+        self.C = np.eye(2)
 
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0], [3e-1, 3e-1, 5e-2, 5e-2 ] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0], [1e-2, 5e-2, 1e-2, 5e-2] )
+        self.w = Gaussian.diagonal( [0, 0], [3e-1, 3e-1 ] )
+        self.v = Gaussian.diagonal( [0, 0], [1e-2, 5e-2] )
 
-        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [9999, 9999, 1e+2, 1e+2] )
+        self.x = Gaussian.diagonal( [_dist, _theta], [9999, 9999] )
 
-        self.yold = { 'camera':[_dist, _theta], 'lidar':[_dist, _theta] }
+        # self.yold = { 'camera':[_dist, _theta], 'lidar':[_dist, _theta] }
 
         self.mahalonobis_threshold = 1.0
 
@@ -64,16 +54,16 @@ class SensorFusion(KalmanFilter):
         self.out_pub = rospy.Publisher("/target/fused_position", PositionPolar, queue_size=32)
         self.out_pose = rospy.Publisher("/target/pose_with_cov", PoseWithCovarianceStamped, queue_size=32)
 
-    def correct(self, y, v=None, sensor='camera'):
-        self.predict()
+    # def correct(self, y, v=None, sensor='camera'):
+    #     self.predict()
 
-        ty = np.append(y, [ y[ix]-self.yold[sensor][ix] for ix in range(len(y)) ] )
+    #     ty = np.append(y, [ y[ix]-self.yold[sensor][ix] for ix in range(len(y)) ] )
 
-        # print('y: ', ty)
-        # print('cov:\n', v)
+    #     # print('y: ', ty)
+    #     # print('cov:\n', v)
 
-        KalmanFilter.correct(self, ty, v)
-        self.yold[sensor] = y
+    #     KalmanFilter.correct(self, ty, v)
+    #     self.yold[sensor] = y
 
     def lidar_cb(self, data):
         # rospy.loginfo("SF: Got LIDAR position")
@@ -81,7 +71,7 @@ class SensorFusion(KalmanFilter):
         data.covariance = np.array(data.covariance).reshape( (-1, data.cov_size) )
 
         y = np.array([ data.distance, data.heading ])
-        self.correct( y, data.covariance[:4, :4], sensor='lidar' )
+        self.correct( y, data.covariance[:2, :2] )
 
         # print('\nLIDAR:')
         # print(data.distance)
@@ -95,7 +85,7 @@ class SensorFusion(KalmanFilter):
         data.covariance = np.array(data.covariance).reshape( (-1, data.cov_size) )
 
         y = np.array([ data.distance, data.heading ])
-        self.correct( y, data.covariance[:4, :4], sensor='camera' )
+        self.correct( y, data.covariance[:2, :2])
 
         # print('\nCamera:')
         # print(data.distance)
@@ -167,7 +157,7 @@ class SensorFusion(KalmanFilter):
             jac = np.array([    [ np.cos(angle) , np.sin(angle) ],  \
                                 [ -np.sin(angle), np.cos(angle) ]   \
                             ])
-            cov_rt = self.x.var[:2, :2]
+            cov_rt = self.x.var #[:2, :2]
             cov_xy = np.eye(6)
             cov_xy[:2, :2] = np.dot( np.dot( jac, cov_rt ), jac.T )
             # cov_xy = np.pad(cov_xy, ((0, 4), (0, 4)), 'constant', constant_values=(1, 1) )

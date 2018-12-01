@@ -35,25 +35,23 @@ class Lidar:
         scan_filtered = self.GetScanInRange(scan, self.bearing-self.bearing_offset, self.bearing+self.bearing_offset)
         self.scan_pub.publish(scan_filtered)
 
+
+        if( np.shape(scan_filtered.ranges)[0] ) < 30:
+            return
+
         ## Similar to median, but get the 30% closest point rather than the 50%
         dist = np.percentile(scan_filtered.ranges, 30)
 
         out_msg = PositionPolar()
         out_msg.distance = dist
         out_msg.heading = math.degrees(self.bearing)
-        out_msg.cov_size = 4
+        out_msg.cov_size = 2
         # out_msg.covariance = np.array([
         #     [0.2, 0],   \
         #     [0, 9999],   \
         # ]).flatten().tolist()
 
-        out_msg.covariance = np.array([
-            [1e-2, 0, 0, 0],   \
-            [0, 1e-1, 0, 0],   \
-            [0, 0, 1e-3, 0],   \
-            [0, 0, 0, 2e-2],   \
-        ]).flatten().tolist()
-
+        out_msg.covariance = np.diag([ 1e-2, 1e-1 ]).flatten().tolist()
         self.out_pub.publish(out_msg)
         
         
