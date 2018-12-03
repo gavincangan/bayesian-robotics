@@ -55,31 +55,6 @@ class Lidar:
 
         self.out_pub.publish(out_msg)
         
-        
-
-        # ## Create a marker for visualization
-        # x = dist * math.cos(self.bearing)
-        # y = dist * math.sin(self.bearing)
-
-        # marker_msg = Marker()
-        # marker_msg.header.frame_id = "laser"
-        # marker_msg.id = 0
-        # marker_msg.type = 2 #Sphere
-        # marker_msg.pose.position.x = x
-        # marker_msg.pose.position.y = y
-        # marker_msg.pose.position.z = 0
-
-        # marker_msg.scale.x = 0.24
-        # marker_msg.scale.y = 0.24
-        # marker_msg.scale.z = 0.24
-
-        # marker_msg.color.r = 1.0
-        # marker_msg.color.g = 0.0
-        # marker_msg.color.b = 1.0
-        # marker_msg.color.a = 0.75
-
-        # self.marker_pub.publish(marker_msg)
-
 
     def GetScanInRange(self, scan, angle_min, angle_max):
         scan_filtered = LaserScan()
@@ -157,19 +132,17 @@ class LidarTracker(KalmanFilter):
 
         innov_var = np.linalg.inv( self.v.var + np.dot(self.C, np.dot( self.x.var, self.C.T )) )
 
-        all_innov_mu = []
-        all_mahalonobis_dist = []
-        for ty in y:
-            t_innov_mu = ty - np.dot(self.C, self.x.mu)
-            all_innov_mu.append( t_innov_mu )
-            all_mahalonobis_dist.append( np.dot(t_innov_mu, np.dot(innov_var, t_innov_mu ) ) )
-        
-        all_mahalonobis_dist = np.array(all_mahalonobis_dist)
-
         match_y = 0
         match_innov_mu = 0
+        match_mahalonobis_dist = np.inf
+        for ty in y:
+            t_innov_mu = ty - np.dot(self.C, self.x.mu)
+            t_mahalonobis_dist = np.dot(t_innov_mu, np.dot(innov_var, t_innov_mu ) )
 
-
+            if( t_mahalonobis_dist < match_mahalonobis_dist ):
+                match_mahalonobis_dist = t_mahalonobis_dist
+                match_innov_mu = t_innov_mu
+                match_y = ty
 
         y_app = np.append(match_y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
 

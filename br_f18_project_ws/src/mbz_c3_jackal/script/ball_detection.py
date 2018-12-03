@@ -19,6 +19,7 @@ from visualization_msgs.msg import Marker
 from mbz_c3_jackal.msg import PositionPolar, Vector
 
 from kalman_filter import KalmanFilter, Gaussian
+from ext_kalman_filter import ExtKalmanFilter
 
 class image_converter:
     def __init__(self):
@@ -71,13 +72,13 @@ class image_converter:
             #pixels_at_1m = 180.3 ## Radius = 12.7cm
             pixels_at_1m = 120 ## Radius = 12.7cm
             
-            z_est = pixels_at_1m/radius
+            z_est = -pixels_at_1m/radius
             
             #self.drawText(img_final, "Radius: {:3.1f} px".format(radius), center[0], center[1])
             # self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
             
             ## Get estimated bearing, knowing the FOV is 90 degrees
-            bearing = -(float(center[0])/(img_final.shape[1]/2)-1)*20.0
+            bearing = (float(center[0])/(img_final.shape[1]/2)-1)*20.0
             
             """
             w = (img_final.shape[1]/2)
@@ -237,80 +238,63 @@ class image_converter:
         
         return circles_out
 
-class BallTracker(KalmanFilter):
+class BallTracker(ExtKalmanFilter):
     
     def __init__(self, _X, _Y, _R):
-        self.A = np.array([  \
-            [1, 0, 0, 1, 0, 0], \
-            [0, 1, 0, 0, 1, 0], \
-            [0, 0, 1, 0, 0, 1], \
-            [0, 0, 0, 1, 0, 0], \
-            [0, 0, 0, 0, 1, 0], \
-            [0, 0, 0, 0, 0, 1], \
-        ])
-
-        self.C = np.array([  \
-            [1, 0, 0, 0, 0, 0],   \
-            [0, 1, 0, 0, 0, 0],   \
-            [0, 0, 1, 0, 0, 0],   \
-            [0, 0, 0, 1, 0, 0],   \
-            [0, 0, 0, 0, 1, 0],   \
-            [0, 0, 0, 0, 0, 1],   \
-        ])
-
-        self.B = np.array([0])
-        self.D = np.array([0])
 
         self.w = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [1e-4, 1e-4, 5e-0, 1e-4, 1e-4, 5e-0] )
         self.v = Gaussian.diagonal( [0, 0, 0, 0, 0, 0], [5e-5, 5e-5, 1e0, 1e-4, 1e-4, 5e-1] )
 
         self.x = Gaussian.diagonal( [_X, _Y, _R, 0, 0, 0], [1e-3, 1e-3, 1e-3, 1e-5, 1e-5, 1e-4] )
 
-        self.yold = [_X, _Y, _R]
-
         self.mahalonobis_threshold = 1.0
+    
+        # u --> linear vel, angular vel
+        self.u = None
 
-    def correct(self, y):
-        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
-        # pdb.set_trace()
-        KalmanFilter.correct(self, ty)
-        self.yold = y
+    def nextState(self):
+        # x.mu --> Xrobot, Yr, Theta_r, Xball, Yb
+
+        dXr = self.u[0] * np.cos( x.mu[2] )
+        dYr = self.u[0] * np.sin( x.mu[2] )
+
+        self.x.mu[0] = self.x.mu[0] + dXr
+        self.x.mu[1] = self.x.mu[1] + dYr
+        self.x.mu[2] = self.u[1]
+
+        self.x.mu[3] = self.x.mu[3] + dXr
+        self.x.mu[4] = self.x.mu[4] + dYr        
+
+
+    def correct(self, z, measureType='camera'):
+
+        if measureType == 'camera':
+            pass
 
 
 class BearingTracker(KalmanFilter):
     
     def __init__(self, _dist, _theta):
-        self.A = np.array([  \
-            [1, 0, 1, 0], \
-            [0, 1, 0, 1], \
-            [0, 0, 1, 0], \
-            [0, 0, 0, 1], \
-        ])
-
-        self.C = np.array([  \
-            [1, 0, 0, 0],   \
-            [0, 1, 0, 0],   \
-            [0, 0, 1, 0],   \
-            [0, 0, 0, 1],   \
-        ])
+        self.A = np.eye(2)
+        self.C = np.eye(2)
 
         self.B = np.array([0])
         self.D = np.array([0])
 
-        self.w = Gaussian.diagonal( [0, 0, 0, 0], [1e-1, 1e-4, 1e-1, 1e-4] )
-        self.v = Gaussian.diagonal( [0, 0, 0, 0], [5e0, 1e-2, 5e-1, 1e-2] )
+        self.w = Gaussian.diagonal( [0, 0], [1e-1, 1e-4] )
+        self.v = Gaussian.diagonal( [0, 0], [5e0, 1e-2] )
 
-        self.x = Gaussian.diagonal( [_dist, _theta, 0, 0], [1e0, 1e-3, 1e-1, 1e-2] )
+        self.x = Gaussian.diagonal( [_dist, _theta], [1e1, 1e-1] )
 
-        self.yold = [_dist, _theta]
+        # self.yold = [_dist, _theta]
 
         self.mahalonobis_threshold = 1.0
 
-    def correct(self, y):
-        ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
-        # pdb.set_trace()
-        KalmanFilter.correct(self, ty)
-        self.yold = y
+    # def correct(self, y):
+    #     # ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
+    #     # pdb.set_trace()
+    #     KalmanFilter.correct(self, y)
+    #     self.yold = y
 
 def main(args):
     rospy.init_node('ball_detection', anonymous=True)
@@ -322,7 +306,7 @@ def main(args):
     except KeyboardInterrupt:
         print("Shutting down")
     
-    if self.gui:
+    if ic.gui:
         cv2.destroyAllWindows()
 
 if __name__ == '__main__':
