@@ -24,7 +24,6 @@
 
     <param name="odom_frame" value="odom"/>
     <param name="pub_map_odom_transform" value="true"/>
-    <param name="" value=""/>
 
     <remap from="map" to="scanmatcher_map" />
   </node>
