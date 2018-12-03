@@ -194,7 +194,7 @@ class StateTracker(ExtKalmanFilter):
             self.predict()
 
             marker_msg = Marker()
-            marker_msg.header.frame_id = "base_link"
+            marker_msg.header.frame_id = "map"
             marker_msg.id = 0
             marker_msg.type = 2 #Sphere
             marker_msg.pose.position.x = self.x.mu[0]
