@@ -81,10 +81,6 @@ class StateTracker(ExtKalmanFilter):
         self.jacC_FUSED[0, 3] = 1
         self.jacC_FUSED[1, 4] = 1
 
-        self.jacC_FUSED = np.zeros((2,5))
-        self.jacC_FUSED[0, 3] = 1
-        self.jacC_FUSED[1, 4] = 1
-
         # ([
         #         [   1,  0,  0,  0,  0   ], \
         #         [   0,  1,  0,  0,  0   ], \
