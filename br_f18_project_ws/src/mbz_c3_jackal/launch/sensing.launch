@@ -1,0 +1,10 @@
+<launch>
+  <!--
+  <node name="republish" type="republish" pkg="image_transport" output="screen"
+    args="raw in:=/image_topic_2 compressed out:=/image_topic_2" />
+  -->
+  
+  <node pkg="mbz_c3_jackal" type="ball_detection.py" name="ball_detection"/>
+  <node pkg="mbz_c3_jackal" type="lidar_detection.py" name="lidar_detection"/>
+  <!--<node pkg="mbz_c3_jackal" type="sensor_fusion.py" name="sensor_fusion"/>-->
+</launch>

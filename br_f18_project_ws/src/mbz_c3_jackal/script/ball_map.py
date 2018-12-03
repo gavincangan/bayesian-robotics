@@ -55,8 +55,8 @@ class localmap:
                 g = (self.ball_detection_probability-0.5)*g + 0.5
                 self.ball_conv[x][y] = self.prob2logodds(g)
 
-        np.set_printoptions(precision=3, linewidth=150)
-        print(self.ball_conv)
+        #np.set_printoptions(precision=3, linewidth=150)
+        #print(self.ball_conv)
 
 
     def prob2logodds(self, p):

@@ -8,6 +8,8 @@ in the URDF. See jackal_description/urdf/accessories.urdf.xacro.
   <!-- Hokuyu LIDAR scanner -->
   <node pkg="hokuyo_node" name="hokuyo_node" type="hokuyo_node"/>
 
+  <node pkg="tf" type="static_transform_publisher" name="base_laser_broadcaster" args="0.18 0 0 0 0 0 base_link laser 100" required="true"/>
+
   <!-- Webcam -->
   <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
     <param name="video_device" value="/dev/video0" />
