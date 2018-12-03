@@ -18,7 +18,8 @@ from cv_bridge import CvBridge, CvBridgeError
 from visualization_msgs.msg import Marker
 from mbz_c3_jackal.msg import PositionPolar, Vector
 
-from kalman_filter import KalmanFilter, Gaussian, ExtKalmanFilter
+from kalman_filter import KalmanFilter, Gaussian
+from ext_kalman_filter import ExtKalmanFilter
 
 class image_converter:
     def __init__(self):
@@ -305,7 +306,7 @@ def main(args):
     except KeyboardInterrupt:
         print("Shutting down")
     
-    if self.gui:
+    if ic.gui:
         cv2.destroyAllWindows()
 
 if __name__ == '__main__':

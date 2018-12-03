@@ -109,6 +109,9 @@ class StateTracker(ExtKalmanFilter):
         self.x.mu[3] = self.x.mu[3] + dXr
         self.x.mu[4] = self.x.mu[4] + dYr
 
+
+        self.u[0] = 0.0
+        self.u[1] = 0.0
         # print(dt, dXr, dYr, '\n', self.u , '\n', self.x.mu)
 
     def jacobianA(self):
@@ -151,7 +154,8 @@ class StateTracker(ExtKalmanFilter):
 
     def input_callback(self, data):
         # u --> linear vel, angular vel
-        # rospy.loginfo("Received cmd_vel")
+        log_str = "Received cmd_vel {}, {}".format(data.linear.x, data.angular.z)
+        rospy.loginfo(log_str)
 
         self.u[0] = data.linear.x
         self.u[1] = data.angular.z
