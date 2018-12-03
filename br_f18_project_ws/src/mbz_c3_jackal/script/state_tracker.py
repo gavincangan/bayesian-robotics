@@ -97,14 +97,14 @@ class StateTracker(ExtKalmanFilter):
 
     def nextState(self):
         # x.mu --> Xrobot, Yr, Theta_r, Xball, Yb
-        dt = 0.5
+        dt = 1
 
-        dXr = self.u[0] * np.cos( self.x.mu[2] ) * dt
-        dYr = self.u[0] * np.sin( self.x.mu[2] ) * dt
+        dXr = self.u[0] * np.cos( self.x.mu[2] ) * 0.11 * dt
+        dYr = self.u[0] * np.sin( self.x.mu[2] ) * 0.11 * dt
 
         self.x.mu[0] = self.x.mu[0] + dXr
         self.x.mu[1] = self.x.mu[1] + dYr
-        self.x.mu[2] += self.u[1] * dt
+        self.x.mu[2] += self.u[1] * 0.2 * dt
 
         self.x.mu[3] = self.x.mu[3] + dXr
         self.x.mu[4] = self.x.mu[4] + dYr
@@ -154,8 +154,8 @@ class StateTracker(ExtKalmanFilter):
 
     def input_callback(self, data):
         # u --> linear vel, angular vel
-        log_str = "Received cmd_vel {}, {}".format(data.linear.x, data.angular.z)
-        rospy.loginfo(log_str)
+        # log_str = "Received cmd_vel {}, {}".format(data.linear.x, data.angular.z)
+        # rospy.loginfo(log_str)
 
         self.u[0] = data.linear.x
         self.u[1] = data.angular.z
@@ -170,8 +170,6 @@ class StateTracker(ExtKalmanFilter):
                             [ -np.sin(data.heading), np.cos(data.heading) ]   \
                         ])
         self.v_FUSED.var = np.dot( np.dot( jac, data.covariance ), jac.T )
-        if abs( np.linalg.det( self.v_FUSED.var ) ) < 1e-10:
-            return
         ExtKalmanFilter.correct(self, self.z_lidar, self.v_FUSED.var, DATATYPE=DataType.FUSED)
 
     def is_updated( self, DATATYPE=DataType.SLAM ):

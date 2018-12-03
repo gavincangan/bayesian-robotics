@@ -61,7 +61,11 @@ class ExtKalmanFilter:
         jacC = self.jacobianC(DATATYPE)
 
         innov_mu = y - y_hat
-        innov_var = np.linalg.inv( v_var + np.dot(jacC, np.dot( self.x.var, jacC.T )) )
+        innov_var_inv = v_var + np.dot(jacC, np.dot( self.x.var, jacC.T ))
+        if abs( np.linalg.det(innov_var_inv) ) < 1e-10:
+            return
+
+        innov_var = np.linalg.inv( innov_var_inv )
 
         # mahalonobis_dist = np.dot(innov_mu, np.dot(innov_var, innov_mu ) )
         # if(mahalonobis_dist <= self.mahalonobis_threshold):
