@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import rospy, math, random
+import rospy, math, random, time
 import numpy as np
 from sensor_msgs.msg import LaserScan
 #from laser_geometry import LaserProjection
@@ -14,46 +14,49 @@ class Lidar:
         self.bearing_offset = 0.1
 
         self.scan_sub = rospy.Subscriber(scan_topic, LaserScan, self.on_scan)
-        self.cam_pos_sub = rospy.Subscriber("target/cam_position",PositionPolar, self.on_cam_pos)
+        self.cam_pos_sub = rospy.Subscriber("target/raw_cam_position",PositionPolar, self.on_cam_pos)
         self.marker_pub = rospy.Publisher("target/lidar_marker",Marker, queue_size=32)
         self.out_pub = rospy.Publisher("target/lidar_position",PositionPolar, queue_size=32)
         self.scan_pub = rospy.Publisher("/scan/filtered", LaserScan, queue_size=10)
         
         #self.laser_projector = LaserProjection()
-
+        self.last_cam_msg_timestamp = time.time()
     
     def on_cam_pos(self, msg):
         # rospy.loginfo("Got cam_position")
 
         self.bearing = math.radians(msg.heading)
         #self.bearing_offset = msg.distance/10
-
+        self.last_cam_msg_timestamp = time.time()
 
     def on_scan(self, scan):
         # rospy.loginfo("Got scan")
 
-        scan_filtered = self.GetScanInRange(scan, self.bearing-self.bearing_offset, self.bearing+self.bearing_offset)
-        self.scan_pub.publish(scan_filtered)
+        if time.time() - self.last_cam_msg_timestamp < 0.5:
+
+            scan_filtered = self.GetScanInRange(scan, self.bearing-self.bearing_offset, self.bearing+self.bearing_offset)
+            self.scan_pub.publish(scan_filtered)
 
 
-        if( np.shape(scan_filtered.ranges)[0] ) < 30:
-            return
+            if( np.shape(scan_filtered.ranges)[0] ) < 30:
+                return
 
-        ## Similar to median, but get the 30% closest point rather than the 50%
-        dist = np.percentile(scan_filtered.ranges, 30)
+            ## Similar to median, but get the 30% closest point rather than the 50%
+            dist = np.percentile(scan_filtered.ranges, 30)
 
-        out_msg = PositionPolar()
-        out_msg.distance = dist
-        out_msg.heading = math.degrees(self.bearing)
-        out_msg.cov_size = 2
-        # out_msg.covariance = np.array([
-        #     [0.2, 0],   \
-        #     [0, 9999],   \
-        # ]).flatten().tolist()
+            out_msg = PositionPolar()
+            out_msg.distance = dist
+            out_msg.heading = math.degrees(self.bearing)
+            out_msg.cov_size = 2
+            # out_msg.covariance = np.array([
+            #     [0.2, 0],   \
+            #     [0, 9999],   \
+            # ]).flatten().tolist()
 
-        out_msg.covariance = np.diag([ 1e-2, 1e-1 ]).flatten().tolist()
-        self.out_pub.publish(out_msg)
-        
+            out_msg.covariance = np.diag([ 5e-2, 5e-1 ]).flatten().tolist()
+            
+            self.out_pub.publish(out_msg)
+            
         
 
         # ## Create a marker for visualization

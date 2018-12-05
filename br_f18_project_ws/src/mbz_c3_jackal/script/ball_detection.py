@@ -23,16 +23,19 @@ from ext_kalman_filter import ExtKalmanFilter
 
 class image_converter:
     def __init__(self):
-        self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
+        # self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
         self.out_pub = rospy.Publisher("target/cam_position",PositionPolar, queue_size=32)
         self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
-        
+
+        self.out_raw_pub = rospy.Publisher("target/raw_cam_position",PositionPolar, queue_size=32)
+
+
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("usb_cam/image_raw/compressed", CompressedImage, self.callback)
+        self.image_sub = rospy.Subscriber("usb_cam/image_raw", Image, self.callback, queue_size=5)
 
         # ## Manually set exposure for camera
-        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
-        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
+        os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
+        os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
     
         self.tracker = None
         self.gui = False
@@ -40,9 +43,9 @@ class image_converter:
     def callback(self, data):
         # rospy.loginfo("Received usb cam data")
         try:
-            img_np_arr = np.fromstring(data.data, np.uint8)
-            img = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
-            # img = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # img_np_arr = np.fromstring(data.data, np.uint8)
+            # img = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
+            img = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
         except Exception as ex:
@@ -72,14 +75,21 @@ class image_converter:
             #pixels_at_1m = 180.3 ## Radius = 12.7cm
             pixels_at_1m = 120 ## Radius = 12.7cm
             
-            z_est = -pixels_at_1m/radius
+            z_est = pixels_at_1m/radius
             
             #self.drawText(img_final, "Radius: {:3.1f} px".format(radius), center[0], center[1])
             # self.drawText(img_final, "Distance: {:1.2f}m".format(z_est), center[0]+30, center[1]-int(radius)-30)
             
             ## Get estimated bearing, knowing the FOV is 90 degrees
             bearing = (float(center[0])/(img_final.shape[1]/2)-1)*20.0
-            
+
+            out_raw_msg = PositionPolar()
+            out_raw_msg.distance = z_est
+            out_raw_msg.heading = bearing
+            out_raw_msg.cov_size = 0
+            out_raw_msg.covariance = []
+            self.out_raw_pub.publish(out_raw_msg)
+
             """
             w = (img_final.shape[1]/2)
             x = float(center[0]) - w
@@ -94,7 +104,7 @@ class image_converter:
             else:
                 self.tracker.correct( np.array([ z_est, bearing ]) )
 
-        if self.tracker:
+        if self.tracker and circles:
             # self.tracker.predict( np.array([0]) )
             # self.tracker.correct( np.array([ center[0], center[1], radius ]) )
 
@@ -147,10 +157,10 @@ class image_converter:
         # cv2.imshow("Image window", img_final)
         # cv2.waitKey(1)
        
-        try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
-        except CvBridgeError as e:
-            print(e)
+        # try:
+        #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
+        # except CvBridgeError as e:
+        #     print(e)
 
 
     def drawText(self, img, text, x, y):

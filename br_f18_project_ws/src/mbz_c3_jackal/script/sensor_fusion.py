@@ -54,7 +54,7 @@ class SensorFusion(KalmanFilter):
         self.out_pub = rospy.Publisher("/target/fused_position", PositionPolar, queue_size=32)
         self.out_pose = rospy.Publisher("/target/pose_with_cov", PoseWithCovarianceStamped, queue_size=32)
 
-        self.cb_time = rospy.time.time()
+        self.cb_time = time.time()
 
     # def correct(self, y, v=None, sensor='camera'):
     #     self.predict()
@@ -79,7 +79,7 @@ class SensorFusion(KalmanFilter):
         y = np.array([ data.distance, data.heading ])
         self.correct( y, data.covariance[:2, :2] )
 
-        self.cb_time = rospy.time.time()
+        self.cb_time = time.time()
 
         # print('\nLIDAR:')
         # print(data.distance)
@@ -95,7 +95,7 @@ class SensorFusion(KalmanFilter):
         y = np.array([ data.distance, data.heading ])
         self.correct( y, data.covariance[:2, :2])
 
-        self.cb_time = rospy.time.time()
+        self.cb_time = time.time()
 
         # print('\nCamera:')
         # print(data.distance)
@@ -107,7 +107,7 @@ class SensorFusion(KalmanFilter):
         KalmanFilter.predict(self, u, w)
 
     def publish(self):
-        next_pub = rospy.time.time()
+        next_pub = time.time()
 
         count = 0
         msg_seq = 1
@@ -117,7 +117,7 @@ class SensorFusion(KalmanFilter):
             # count += 1
             # if count%1 == 0:
 
-            if rospy.time.time() - self.cb_time > 1.0:
+            if time.time() - self.cb_time > 1.0:
                 rate.sleep()
                 continue
 

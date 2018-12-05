@@ -27,7 +27,7 @@ class AllMarkers:
         y = data.distance * sin(angle)
 
         marker_msg = Marker()
-        marker_msg.header.frame_id = "base_link"
+        marker_msg.header.frame_id = "laser"
         marker_msg.id = 0
         marker_msg.type = 2 #Sphere
         marker_msg.pose.position.x = x
