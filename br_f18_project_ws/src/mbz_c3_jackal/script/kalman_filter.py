@@ -27,7 +27,7 @@ class KalmanFilter:
 
         self.K = _K
 
-        self.mahalonobis_threshold = np.inf #1.0
+        # self.mahalonobis_threshold = np.inf #1.0
 
     def predict(self, u, w=None):
         if(w is None):
@@ -38,21 +38,21 @@ class KalmanFilter:
 
         self.x.mu, self.x.var = tx_mu, tx_var
 
-    def correct(self, y, v=None):
+    def correct(self, y, v_var=None):
 
-        if v is None:
-            v_var = self.v.var
-        elif isinstance(v, np.ndarray):
-            v_var = v
-        elif isinstance(v, Gaussian):
-            v_var = v.var
-        else:
-            raise NotImplementedError
+        # if v is None:
+        # #     v_var = self.v.var
+        # # elif isinstance(v, np.ndarray):
+        # #     v_var = v
+        # # elif isinstance(v, Gaussian):
+        # #     v_var = v.var
+        # # else:
+        #     raise NotImplementedError
 
         innov_mu = y - np.dot(self.C, self.x.mu)
         innov_var = np.linalg.inv( v_var + np.dot(self.C, np.dot( self.x.var, self.C.T )) )
 
-        mahalonobis_dist = np.dot(innov_mu, np.dot(innov_var, innov_mu ) )
+        # mahalonobis_dist = np.dot(innov_mu, np.dot(innov_var, innov_mu ) )
         
         # if(mahalonobis_dist <= self.mahalonobis_threshold):
 

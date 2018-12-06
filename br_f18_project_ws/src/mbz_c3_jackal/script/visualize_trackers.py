@@ -11,13 +11,13 @@ from mbz_c3_jackal.msg import PositionPolar, Vector
 
 class AllMarkers:
     def __init__(self):
-        self.lidar_sub = rospy.Subscriber("/target/lidar_position",PositionPolar, self.lidar_cb)
-        self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
-        self.fused_sub = rospy.Subscriber("/target/fused_position", PositionPolar, self.fused_cb)
-
         self.fused_marker_pub = rospy.Publisher("target/fused_marker2", Marker, queue_size=32)
         self.lidar_marker_pub = rospy.Publisher("target/lidar_marker2", Marker, queue_size=32)
         self.cam_marker_pub = rospy.Publisher("target/cam_marker2", Marker, queue_size=32)
+
+        self.lidar_sub = rospy.Subscriber("/target/lidar_position",PositionPolar, self.lidar_cb)
+        self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
+        self.fused_sub = rospy.Subscriber("/target/fused_position", PositionPolar, self.fused_cb)
 
 
     def publisher( self, data, pub=None, color=(1.0, 1.0, 1.0, 1.0) ):

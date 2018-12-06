@@ -25,23 +25,30 @@ class image_converter:
     def __init__(self):
         # self.image_pub = rospy.Publisher("image_topic_2",Image, queue_size=32)
         self.out_pub = rospy.Publisher("target/cam_position",PositionPolar, queue_size=32)
-        self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
-
+        # self.marker_pub = rospy.Publisher("target/cam_marker",Marker, queue_size=32)
         self.out_raw_pub = rospy.Publisher("target/raw_cam_position",PositionPolar, queue_size=32)
 
-
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("usb_cam/image_raw", Image, self.callback, queue_size=5)
 
         # ## Manually set exposure for camera
-        os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
-        os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
+        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_auto=1")
+        # os.system("v4l2-ctl -d /dev/video0 --set-ctrl=exposure_absolute=170")
     
         self.tracker = None
         self.gui = False
 
+        self.image_sub = rospy.Subscriber("usb_cam/image_raw", Image, self.callback, queue_size=5)
+
+
     def callback(self, data):
         # rospy.loginfo("Received usb cam data")
+
+
+        # print(data.header)
+        dt = rospy.get_rostime() - data.header.stamp
+        if dt.to_sec() > 0.1:
+            return
+
         try:
             # img_np_arr = np.fromstring(data.data, np.uint8)
             # img = cv2.imdecode(img_np_arr, cv2.IMREAD_COLOR)
@@ -64,9 +71,9 @@ class image_converter:
             center = c[0]
             radius = c[1]
 
-            if self.gui:
-                cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
-                cv2.circle(img_final, center, 5, (255, 0, 255), -1)
+            # if self.gui:
+            #     cv2.circle(img_final, center, int(radius), (0, 255, 255), 2)
+            #     cv2.circle(img_final, center, 5, (255, 0, 255), -1)
 
             ## Display some extra information about the object on-screen
             ## Get the estimated distance
@@ -96,8 +103,8 @@ class image_converter:
             angle_fov = 45.0
             bearing = -degrees(atan(x/w*tan(radians(angle_fov))))
             """
-            if self.gui:
-                self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
+            # if self.gui:
+            #     self.drawText(img_final, "Bearing:  {:2.1f} deg".format(bearing), center[0]+30, center[1]-int(radius)-0)
            
             if(not self.tracker):
                 self.tracker = BearingTracker(z_est, bearing)
@@ -152,15 +159,15 @@ class image_converter:
 
             # self.marker_pub.publish(marker_msg)
             
-        
-        # cv2.imshow("Threshold", img_threshold)
-        # cv2.imshow("Image window", img_final)
-        # cv2.waitKey(1)
-       
-        # try:
-        #     self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
-        # except CvBridgeError as e:
-        #     print(e)
+            # if self.gui:        
+            #     cv2.imshow("Threshold", img_threshold)
+            #     cv2.imshow("Image window", img_final)
+            #     cv2.waitKey(1)
+            
+                # try:
+                #     # self.image_pub.publish(self.bridge.cv2_to_imgmsg(img_final, "bgr8"))
+                # except CvBridgeError as e:
+                #     print(e)
 
 
     def drawText(self, img, text, x, y):
@@ -229,8 +236,8 @@ class image_converter:
             center = (int(x), int(y))
             
             ## Draw contour
-            if self.gui:
-                cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
+            # if self.gui:
+            #     cv2.drawContours(img, [c], 0, (0, 255, 0), 2)
             
             ## Only proceed if the radius meets a minimum size
             if radius < min_radius:
@@ -300,7 +307,9 @@ class BearingTracker(KalmanFilter):
 
         self.mahalonobis_threshold = 1.0
 
-    # def correct(self, y):
+    def correct(self, y):
+        KalmanFilter.correct(self, y, self.v.var)
+
     #     # ty = np.append(y, [ y[ix]-self.yold[ix] for ix in range(len(y)) ] )
     #     # pdb.set_trace()
     #     KalmanFilter.correct(self, y)

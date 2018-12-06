@@ -46,15 +46,15 @@ class SensorFusion(KalmanFilter):
 
         # self.v_lidar = Gaussian.diagonal( [0, 0], [1e-8, 5e-1] )
         # self.v_cam = Gaussian.diagonal( [0, 0], [1e-2, 5e-7] )
-
-        self.lidar_sub = rospy.Subscriber("/target/lidar_position",PositionPolar, self.lidar_cb)
-        self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
-
-        self.marker_pub = rospy.Publisher("target/fused_marker", Marker, queue_size=32)
+        # self.marker_pub = rospy.Publisher("target/fused_marker", Marker, queue_size=32)
         self.out_pub = rospy.Publisher("/target/fused_position", PositionPolar, queue_size=32)
         self.out_pose = rospy.Publisher("/target/pose_with_cov", PoseWithCovarianceStamped, queue_size=32)
 
         self.cb_time = time.time()
+
+        self.lidar_sub = rospy.Subscriber("/target/lidar_position",PositionPolar, self.lidar_cb)
+        self.cam_sub = rospy.Subscriber("/target/cam_position", PositionPolar, self.camera_cb)
+
 
     # def correct(self, y, v=None, sensor='camera'):
     #     self.predict()

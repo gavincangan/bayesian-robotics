@@ -13,15 +13,16 @@ class Lidar:
         self.bearing = 0.0
         self.bearing_offset = 0.1
 
-        self.scan_sub = rospy.Subscriber(scan_topic, LaserScan, self.on_scan)
-        self.cam_pos_sub = rospy.Subscriber("target/raw_cam_position",PositionPolar, self.on_cam_pos)
         self.marker_pub = rospy.Publisher("target/lidar_marker",Marker, queue_size=32)
         self.out_pub = rospy.Publisher("target/lidar_position",PositionPolar, queue_size=32)
         self.scan_pub = rospy.Publisher("/scan/filtered", LaserScan, queue_size=10)
         
         #self.laser_projector = LaserProjection()
         self.last_cam_msg_timestamp = time.time()
-    
+
+        self.scan_sub = rospy.Subscriber(scan_topic, LaserScan, self.on_scan)
+        self.cam_pos_sub = rospy.Subscriber("target/raw_cam_position",PositionPolar, self.on_cam_pos)
+
     def on_cam_pos(self, msg):
         # rospy.loginfo("Got cam_position")
 
