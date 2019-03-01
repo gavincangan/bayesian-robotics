@@ -2,6 +2,17 @@
 
 Workspace for the MBZIRC 2020 Challenge 3. The objective of this package is to locate a fire using the Clearpath Jackal UGV and navigate towards it.
 
+![alt text][jackal]
+
+[jackal]: https://raw.githubusercontent.com/gavincangan/bayesian-robotics/master/jackal.jpg "The Jackal"
+
+## Videos
+1. [Detection]()
+2. [Kalman Filter](https://www.youtube.com/watch?v=IeikM8otWBU)
+3. [Sensor fusion](https://www.youtube.com/watch?v=pEAvC2AhT7s)
+4. [SLAM]()
+5. [Final]()
+
 ## Table of Contents
 1. [Installation](#1-installation)
 2. [Operation](#2-operation)
