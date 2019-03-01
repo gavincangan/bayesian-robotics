@@ -4,7 +4,7 @@ Workspace for the MBZIRC 2020 Challenge 3. The objective of this package is to l
 
 ![alt text][jackal]
 
-[jackal]: https://github.com/gavincangan/bayesian-robotics/master/jackal.jpg "The Jackal"
+[jackal]: https://github.com/gavincangan/bayesian-robotics/blob/master/jackal.jpg "The Jackal"
 
 ## Videos
 1. [Detection]()
