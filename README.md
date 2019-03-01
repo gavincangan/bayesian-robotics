@@ -7,10 +7,10 @@ Workspace for the MBZIRC 2020 Challenge 3. The objective of this package is to l
 [jackal]: https://github.com/gavincangan/bayesian-robotics/blob/master/jackal.jpg "The Jackal"
 
 ## Videos
-1. [Detection]()
+1. [Target Detection](https://www.youtube.com/watch?v=FxaGwc4XuaU)
 2. [Kalman Filter](https://www.youtube.com/watch?v=IeikM8otWBU)
 3. [Sensor fusion](https://www.youtube.com/watch?v=pEAvC2AhT7s)
-4. [SLAM]()
+4. [SLAM](https://www.youtube.com/watch?v=byhQMvpP3Jk)
 5. [Final]()
 
 ## Table of Contents
